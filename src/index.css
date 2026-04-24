@@ -1,0 +1,62 @@
+@import 'tailwindcss';
+@plugin "daisyui" {
+  themes: caramellatte --default;
+}
+@plugin "@tailwindcss/typography";
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@font-face {
+  font-family: Macintosh128K;
+  font-display: swap;
+  src: url('./fonts/Macintosh128K.ttf') format('truetype');
+}
+
+@theme {
+  --font-sans: Macintosh128K, sans-serif;
+
+  --color-nuclear-blast: #ffb700;
+  --color-bright-greek-0.5: rgba(255, 87, 34, 0.5);
+  --color-bright-greek-0.2: rgba(255, 87, 34, 0.2);
+  --color-bright-greek-0.1: rgba(255, 87, 34, 0.1);
+  --color-bright-greek: #ff5722;
+  --color-jet: #333534;
+  --color-jet-0.6: rgba(51, 53, 52, 0.6);
+  --color-matcha-powder-0.5: rgba(255, 152, 0, 0.5);
+  --color-fanatic-fuchsia: #ff6f00;
+  --color-moot-green: #ff9800;
+  --color-prickly-pink: #ff6d00;
+  --color-silver-spoon: #d2d2d2;
+  --color-yellow-background: #ffeb3b;
+  --color-jackpot-secondary: #ff9800;
+  --color-jackpot-separator: #ff980080;
+  --color-jackpot-secondary-text: #33353499;
+  --text-16: 16px;
+  --text-19: 19px;
+  --text-21: 21px;
+  --text-26: 26px;
+  --text-28: 28px;
+  --text-33: 33px;
+  --text-36: 36px;
+  --text-15: 15px;
+  --text-44: 44px;
+  --text-49: 49px;
+  --text-40: 40px;
+  --text-90: 90px;
+
+  --animate-gradient-x: gradient-x 3s ease infinite;
+
+  @keyframes gradient-x {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+}

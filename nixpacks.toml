@@ -1,0 +1,9 @@
+[phases.install]
+cmds = ["npm install -g corepack@0.24.1 && corepack enable", "yarn install --immutable"]
+dependsOn = ["setup"]
+
+[phases.build]
+cmd = 'yarn build'
+
+[start]
+cmd = 'yarn start-server'

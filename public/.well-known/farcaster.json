@@ -1,0 +1,37 @@
+{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjEzNTYsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHgyYjA5NDUwQ0MxODAxOWQyYzUwNWJCY0VDYjI3NDg1RTA0NjlCQzJjIn0",
+    "payload": "eyJkb21haW4iOiJlZ2dzLm5hbWUifQ",
+    "signature": "MHhlY2U4NzU3ZjkyMTRmZTcxZWRmZGFiYjkyNWY3M2Q5NTBiZGFkZTU1MjhmYjYzMzZjMjQ1ZjYxYWNjZjllMDUwMDBlNjUxNDkyZjVkYTBkNDRkMmM5YWMyNzEzZDYyNDFlMWE2MWJiNzQ5YzM2YWZkMzBlZTUzNzU5ZDQ5ODQ2NjFi"
+  },
+  "frame": {
+    "version": "1",
+    "name": "$EGGS",
+    "iconUrl": "https://eggs.name/frames/logo.png",
+    "homeUrl": "https://eggs.name",
+    "imageUrl": "https://eggs.name/frames/image-url.png",
+    "buttonTitle": "Lay some!",
+    "splashImageUrl": "https://eggs.name/frames/splash.png",
+    "splashBackgroundColor": "#c9fd50",
+    "webhookUrl": "https://backend.eggs.name/farcaster-webhook"
+  },
+  "miniapp": {
+    "version": "1",
+    "name": "$EGGS",
+    "iconUrl": "https://eggs.name/frames/logo.png",
+    "homeUrl": "https://eggs.name",
+    "imageUrl": "https://eggs.name/frames/image-url.png",
+    "buttonTitle": "Lay some!",
+    "splashImageUrl": "https://eggs.name/frames/splash.png",
+    "splashBackgroundColor": "#c9fd50",
+    "webhookUrl": "https://backend.eggs.name/farcaster-webhook",
+    "subtitle": "A miniapp for laying eggs",
+    "description": "This is $EGGS, if you like eggs, you'll love $EGGS! Lay eggs, collect chickens, trade 'em, and more!",
+    "primaryCategory": "games",
+    "tags": ["eggs", "finance", "chickens", "top", "earn"]
+  },
+  "baseBuilder": {
+    "allowedAddresses": ["0xf1fF17B90355Cf4c30D814993A6D77c2498A045d"],
+    "ownerAddress": "0xf1fF17B90355Cf4c30D814993A6D77c2498A045d"
+  }
+}
