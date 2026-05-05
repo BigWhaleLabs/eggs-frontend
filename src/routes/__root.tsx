@@ -1,5 +1,4 @@
 import { createRootRoute, Outlet } from '@tanstack/react-router'
-import Modal from 'components/Modals'
 import EllipseColor from 'icons/EllipseColor'
 import chicken from 'images/chickens.webp'
 
@@ -14,7 +13,6 @@ export const Route = createRootRoute({
         backgroundRepeat: 'no-repeat',
       }}
     >
-      <Modal />
       <div className="absolute w-full overflow-hidden h-full pointer-events-none">
         <EllipseColor />
       </div>

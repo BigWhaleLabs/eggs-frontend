@@ -1,532 +1,294 @@
-import frameSdk from '@farcaster/frame-sdk'
-import { useQuery } from '@tanstack/react-query'
+import chickensAbi from 'helpers/chickensAbi'
 import eggsContractAbi from 'helpers/eggsContractAbi'
-import { formatCompactNumber } from 'helpers/formatCompactNumber'
-import zalgo from 'helpers/zalgo'
-import useConnectFarcaster from 'hooks/useConnectFarcaster'
-import { useEggsInfo } from 'hooks/useEggsInfo'
-import { ModalState, useModal } from 'hooks/useModal'
-import useURQLClient from 'hooks/useURQLClient'
-import FilledStar from 'icons/FilledStar'
-import InfoSign from 'icons/InfoSign'
-import Star from 'icons/Star'
-import { useCallback, useState } from 'preact/compat'
-import {
-  claimEggsMutation,
-  getMyData,
-  getMyUnclaimedCoupons,
-} from 'queries/eggsQueries'
+import { useCallback, useState } from 'preact/hooks'
+import { getHenMintSignatureMutation } from 'queries/eggsQueries'
 import toast from 'react-hot-toast'
 import { useMutation } from 'urql'
-import { erc20Abi, formatUnits, zeroAddress } from 'viem'
+import { erc20Abi, parseUnits, zeroAddress } from 'viem'
 import { base } from 'viem/chains'
 import {
   useAccount,
   useBalance,
+  useChainId,
   usePublicClient,
   useReadContract,
+  useSwitchChain,
   useWriteContract,
 } from 'wagmi'
-import { ActionButton } from './Buttons'
-import DottedInfo from './DottedInfo'
+import ShutdownActionsView, {
+  extractErrorMessage,
+  parseChickenSerialId,
+} from './ShutdownActionsView'
 
-const eggFormatter = new Intl.NumberFormat('en-US', {
-  minimumFractionDigits: 0,
-  minimumSignificantDigits: 1,
-})
-
-function ClaimStreakStars({
-  claimNumber,
-  claimedToday,
-}: {
-  claimNumber: number
-  claimedToday: boolean
-}) {
-  const totalExtraStars = 6
-  const preStarNumber = Math.min(
-    claimedToday ? claimNumber - 1 : claimNumber,
-    totalExtraStars
-  )
-  const postStarNumber = totalExtraStars - preStarNumber
-
-  return (
-    <div className="flex flex-row items-center justify-center gap-1">
-      {preStarNumber > 0 &&
-        Array(preStarNumber)
-          .fill(0)
-          .map((_, index) => <FilledStar key={index} />)}
-      <div className="flex items-center justify-center rounded-full p-1.5 bg-[#AEE615]">
-        {claimedToday ? <FilledStar /> : <Star filled />}
-      </div>
-      {postStarNumber > 0 &&
-        Array(postStarNumber)
-          .fill(0)
-          .map((_, index) => <Star key={index} />)}
-    </div>
-  )
-}
+const EGGS_CONTRACT =
+  '0x712f43B21cf3e1B189c27678C0f551c08c01D150' as `0x${string}`
+const CHICKENS_CONTRACT =
+  '0x84EEA2bE67b17698B0E09B57eEEdA47aa921BbF0' as `0x${string}`
+const CHICKEN_MINT_ALLOWANCE = parseUnits('4000', 18)
 
 export default function EggsInfo() {
-  const { openModal } = useModal()
-  const client = useURQLClient()
-  const [isClaimingInProgress, setIsClaimingInProgress] = useState(false)
-  const [isBurningInProgress, setIsBurningInProgress] = useState(false)
-  const [justClaimedEggs, setJustClaimedEggs] = useState(false)
+  const [chickenSerialId, setChickenSerialId] = useState('')
+  const [isUnstaking, setIsUnstaking] = useState(false)
+  const [isMintingChicken, setIsMintingChicken] = useState(false)
+  const account = useAccount()
+  const chainId = useChainId()
+  const publicClient = usePublicClient()
+  const { switchChainAsync } = useSwitchChain()
+  const { writeContractAsync } = useWriteContract()
+  const [, getHenMintSignature] = useMutation(getHenMintSignatureMutation)
 
-  const fetchHens = useCallback(
-    () => client.query(getMyData, {}).toPromise(),
-    [client]
-  )
-  const fetchUnclaimedCoupons = useCallback(
-    () => client.query(getMyUnclaimedCoupons, {}).toPromise(),
-    [client]
-  )
-
-  const { data: unclaimedCouponsData, refetch: refetchUnclaimedCoupons } =
-    useQuery({
-      queryKey: ['myUnclaimedCoupons'],
-      queryFn: fetchUnclaimedCoupons,
-      refetchOnWindowFocus: true,
-      refetchOnReconnect: true,
-      refetchInterval: 1000 * 10,
-    })
-
-  const { data, refetch } = useQuery({
-    queryKey: ['myData'],
-    queryFn: fetchHens,
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
-    refetchInterval: 1000 * 10,
+  const { data: ethBalanceData } = useBalance({
+    address: account.address,
+    chainId: base.id,
   })
 
-  const [, claimEggs] = useMutation(claimEggsMutation)
-
-  const displayYield = !!data?.data?.getMe.hens.length
-
-  const eggsAvailableToClaim =
-    (data?.data?.getMe.unclaimedEggs || 0) +
-    (unclaimedCouponsData?.data?.getMyUnclaimedCoupons.reduce(
-      (acc, coupon) => acc + coupon.amount,
-      0
-    ) || 0)
-
-  const formattedEggs = eggsAvailableToClaim
-    ? eggFormatter.format(eggsAvailableToClaim)
-    : '0'
-
-  const eggsInfo = useEggsInfo()
-
-  const account = useAccount()
-  const connectFarcaster = useConnectFarcaster()
-  const { writeContractAsync } = useWriteContract()
-
-  const { data: eggsBalanceData, refetch: refetchEggBalance } = useReadContract(
-    {
-      address: '0x712f43B21cf3e1B189c27678C0f551c08c01D150',
-      abi: erc20Abi,
-      functionName: 'balanceOf',
-      args: [account.address || zeroAddress],
-      chainId: base.id,
-      query: {
-        refetchInterval: 1000 * 10,
-        enabled: !!account.address,
-      },
-    }
-  )
-
-  const { data: stakeData, refetch: refetchStakeData } = useReadContract({
-    address: '0x712f43B21cf3e1B189c27678C0f551c08c01D150',
+  const {
+    data: stakedEggs,
+    refetch: refetchStakedEggs,
+    isLoading: isLoadingStake,
+  } = useReadContract({
+    address: EGGS_CONTRACT,
     abi: eggsContractAbi,
     functionName: 'stakeOf',
     args: [account.address || zeroAddress],
     chainId: base.id,
     query: {
-      refetchInterval: 1000 * 10,
       enabled: !!account.address,
+      refetchInterval: 1000 * 10,
     },
   })
 
-  const { data: contractEggBalanceData, refetch: refetchContractEggBalance } =
+  const { data: walletEggs, refetch: refetchWalletEggs } = useReadContract({
+    address: EGGS_CONTRACT,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: [account.address || zeroAddress],
+    chainId: base.id,
+    query: {
+      enabled: !!account.address,
+      refetchInterval: 1000 * 10,
+    },
+  })
+
+  const { data: chickenMintAllowance, refetch: refetchChickenMintAllowance } =
     useReadContract({
-      address: '0x712f43B21cf3e1B189c27678C0f551c08c01D150',
+      address: EGGS_CONTRACT,
       abi: erc20Abi,
-      functionName: 'balanceOf',
-      args: ['0x712f43B21cf3e1B189c27678C0f551c08c01D150'],
+      functionName: 'allowance',
+      args: [account.address || zeroAddress, CHICKENS_CONTRACT],
       chainId: base.id,
       query: {
-        refetchInterval: 1000 * 10,
         enabled: !!account.address,
+        refetchInterval: 1000 * 10,
       },
     })
 
-  const { data: ethBalanceData } = useBalance({
-    address: account.address || zeroAddress,
-    chainId: base.id,
-    query: {
-      refetchInterval: 1000 * 10,
-      enabled: !!account.address,
-    },
-  })
-
-  const refreshAllData = useCallback(async () => {
+  const refreshContractData = useCallback(async () => {
     await Promise.all([
-      refetch({}),
-      refetchEggBalance(),
-      refetchStakeData(),
-      refetchUnclaimedCoupons({}),
+      refetchStakedEggs(),
+      refetchWalletEggs(),
+      refetchChickenMintAllowance(),
     ])
-  }, [refetch, refetchUnclaimedCoupons, refetchEggBalance, refetchStakeData])
+  }, [refetchChickenMintAllowance, refetchStakedEggs, refetchWalletEggs])
 
-  const dailyStreak = data?.data?.getMe.claimStreak
-
-  const publicClient = usePublicClient()
-
-  const handleClaimEggs = async () => {
+  const ensureReadyForWrite = useCallback(async () => {
     if (!account.address) {
-      toast.error('No account found. Connect wallet first.')
-      return
+      throw new Error('Connect wallet first')
     }
 
     if (!ethBalanceData || ethBalanceData.value <= 0n) {
-      toast.error('You need some ETH in your wallet to pay for gas')
+      throw new Error('You need ETH on Base to pay for gas')
+    }
+
+    if (chainId !== base.id) {
+      await switchChainAsync({ chainId: base.id })
+    }
+  }, [account.address, chainId, ethBalanceData, switchChainAsync])
+
+  const waitForReceipt = useCallback(
+    async (hash: `0x${string}`) => {
+      await publicClient?.waitForTransactionReceipt({
+        hash,
+        confirmations: 2,
+      })
+    },
+    [publicClient]
+  )
+
+  const handleUnstake = useCallback(async () => {
+    if (!stakedEggs || stakedEggs <= 0n) {
+      toast.error('No staked $EGGS found')
       return
     }
 
-    await connectFarcaster()
-
-    setIsClaimingInProgress(true)
-
+    setIsUnstaking(true)
     try {
-      const result = await claimEggs({
-        ethAddress: account.address,
-      })
+      await ensureReadyForWrite()
+      await toast.promise(
+        (async () => {
+          const hash = await writeContractAsync({
+            chainId: base.id,
+            address: EGGS_CONTRACT,
+            abi: eggsContractAbi,
+            functionName: 'unstake',
+          })
 
-      if (result.error || !result.data?.claimAllEggs) {
-        console.error(result.error)
-        toast.error(
-          `Error claiming eggs: ${result.error?.message || 'Unknown error'}`
-        )
-        setIsClaimingInProgress(false)
-        return
-      }
-
-      if (!result.data.claimAllEggs.length) {
-        toast.error('No eggs to claim')
-        setIsClaimingInProgress(false)
-        return
-      }
-
-      const totalCoupons = result.data.claimAllEggs.length
-      const totalEggs = result.data.claimAllEggs.reduce(
-        (acc, claim) => acc + claim.amount,
-        0
+          await waitForReceipt(hash)
+          await refreshContractData()
+          return hash
+        })(),
+        {
+          loading: 'Unstaking $EGGS...',
+          success: 'Unstaked $EGGS',
+          error: (error) => `Failed to unstake: ${extractErrorMessage(error)}`,
+        }
       )
-      let claimedEggs = 0
+    } catch (error) {
+      toast.error(extractErrorMessage(error))
+    } finally {
+      setIsUnstaking(false)
+    }
+  }, [
+    ensureReadyForWrite,
+    refreshContractData,
+    stakedEggs,
+    waitForReceipt,
+    writeContractAsync,
+  ])
 
-      for (let i = 0; i < totalCoupons; i++) {
-        const claim = result.data.claimAllEggs[i]
+  const handleMintChicken = useCallback(async () => {
+    const serialId = parseChickenSerialId(chickenSerialId)
+    if (!serialId) {
+      toast.error('Enter a valid chicken serial ID')
+      return
+    }
 
-        if (!claim.message || !claim.r || !claim.vs) {
-          toast.error('Invalid claim coupon')
-          continue
-        }
+    if (!account.address) {
+      toast.error('Connect wallet first')
+      return
+    }
+    const walletAddress = account.address
 
-        try {
-          await toast.promise(
-            (async () => {
-              const txHash = await writeContractAsync({
-                chainId: base.id,
-                abi: eggsContractAbi,
-                address: '0x712f43B21cf3e1B189c27678C0f551c08c01D150',
-                functionName: 'redeemTicket',
-                args: [
-                  claim.message as `0x${string}`,
-                  claim.r as `0x${string}`,
-                  claim.vs as `0x${string}`,
-                ],
-              })
+    setIsMintingChicken(true)
+    try {
+      await ensureReadyForWrite()
 
-              await publicClient?.waitForTransactionReceipt({
-                hash: txHash,
-                confirmations: 2,
-              })
+      if (
+        chickenMintAllowance === undefined ||
+        chickenMintAllowance < CHICKEN_MINT_ALLOWANCE
+      ) {
+        await toast.promise(
+          (async () => {
+            const hash = await writeContractAsync({
+              chainId: base.id,
+              address: EGGS_CONTRACT,
+              abi: erc20Abi,
+              functionName: 'approve',
+              args: [CHICKENS_CONTRACT, CHICKEN_MINT_ALLOWANCE],
+            })
 
-              claimedEggs += claim.amount
-              return claim.amount
-            })(),
-            {
-              loading: `Claiming coupon ${i + 1}/${totalCoupons}, ${claim.amount} eggs of ${totalEggs} total eggs`,
-              success: `Claimed ${claim.amount} eggs successfully`,
-              error: (txError) => {
-                const cause =
-                  txError?.cause?.shortMessage ||
-                  txError?.case?.detail ||
-                  txError?.case?.message ||
-                  txError?.data?.message ||
-                  txError?.case?.error ||
-                  txError?.message ||
-                  txError?.reason ||
-                  'Unknown error'
-
-                return `Failed to claim coupon ${i + 1}/${totalCoupons}: ${cause}`
-              },
-            }
-          )
-        } catch (txError) {
-          console.error(`Transaction error for coupon ${i + 1}:`, txError)
-          const cause =
-            txError?.cause?.shortMessage ||
-            txError?.case?.detail ||
-            txError?.case?.message ||
-            txError?.data?.message ||
-            txError?.case?.error ||
-            txError?.message ||
-            txError?.reason ||
-            'Unknown error'
-
-          toast.error(`Error during transaction: ${cause}`)
-        }
-      }
-
-      if (claimedEggs > 0) {
-        await refreshAllData()
-        toast.custom(
-          <div
-            className="rounded-md uppercase text-2xl p-3"
-            style={{
-              background: '#F12696',
-              boxShadow: '0px 0px 14px 0px #F12696',
-            }}
-          >
-            <p
-              className="text-white"
-              style={{
-                lineHeight: 'normal',
-              }}
-            >
-              You successfully claimed {claimedEggs} $EGGS
-            </p>
-          </div>,
+            await waitForReceipt(hash)
+            await refetchChickenMintAllowance()
+            return hash
+          })(),
           {
-            position: 'bottom-center',
-            duration: 5000,
+            loading: 'Setting mint allowance...',
+            success: 'Mint allowance set',
+            error: (error) =>
+              `Failed to set allowance: ${extractErrorMessage(error)}`,
           }
         )
-
-        setJustClaimedEggs(true)
-
-        setTimeout(async () => {
-          setJustClaimedEggs(false)
-          await refreshAllData()
-        }, 15_000)
       }
-    } catch (error) {
-      console.error('Unexpected error during claim process:', error)
-      toast.error(
-        error.reason || error.message || 'An unexpected error occurred'
+
+      await toast.promise(
+        (async () => {
+          const signatureResult = await getHenMintSignature({
+            henSerialId: serialId,
+            toAddress: walletAddress,
+          })
+
+          if (
+            signatureResult.error ||
+            !signatureResult.data?.getHenMintSignature
+          ) {
+            throw new Error(
+              signatureResult.error?.message || 'Failed to get mint signature'
+            )
+          }
+
+          const signature = signatureResult.data.getHenMintSignature
+          const hash = await writeContractAsync({
+            chainId: base.id,
+            address: CHICKENS_CONTRACT,
+            abi: chickensAbi,
+            functionName: 'mintChicken',
+            args: [
+              signature.message as `0x${string}`,
+              signature.r as `0x${string}`,
+              signature.vs as `0x${string}`,
+            ],
+          })
+
+          await waitForReceipt(hash)
+          await refreshContractData()
+          setChickenSerialId('')
+          return hash
+        })(),
+        {
+          loading: `Turning chicken #${serialId} into an NFT...`,
+          success: `Chicken #${serialId} minted`,
+          error: (error) => `Failed to mint NFT: ${extractErrorMessage(error)}`,
+        }
       )
+    } catch (error) {
+      toast.error(extractErrorMessage(error))
     } finally {
-      setIsClaimingInProgress(false)
+      setIsMintingChicken(false)
     }
+  }, [
+    account.address,
+    chickenMintAllowance,
+    chickenSerialId,
+    ensureReadyForWrite,
+    getHenMintSignature,
+    refetchChickenMintAllowance,
+    refreshContractData,
+    waitForReceipt,
+    writeContractAsync,
+  ])
+
+  if (!account.address) {
+    return (
+      <p className="text-19 text-jet-0.6 text-center">
+        Connect a wallet to use the shutdown actions.
+      </p>
+    )
   }
 
   return (
-    <div
-      className="flex flex-col bg-nuclear-blast p-4 pt-6 rounded-xl"
-      style={{
-        lineHeight: 'normal',
+    <ShutdownActionsView
+      address={account.address}
+      chickenSerialId={chickenSerialId}
+      hasChickenMintAllowance={
+        chickenMintAllowance !== undefined &&
+        chickenMintAllowance >= CHICKEN_MINT_ALLOWANCE
+      }
+      isMintingChicken={isMintingChicken}
+      isUnstaking={isUnstaking || isLoadingStake}
+      onChickenSerialIdChange={setChickenSerialId}
+      onCopyAddress={() => {
+        if (!account.address) return
+        void navigator.clipboard.writeText(account.address)
+        toast.success('Copied wallet')
       }}
-    >
-      {eggsInfo?.marketCap && (
-        <div className="flex flex-row justify-between text-19 text-jet-0.6">
-          <p>MCAP: ${formatCompactNumber(eggsInfo?.marketCap)}</p>
-          <p>
-            {account.address && (
-              <span
-                className="flex flex-row justify-between text-19 text-jet-0.6"
-                onClick={() => {
-                  if (!account.address) {
-                    return
-                  }
-                  void navigator.clipboard.writeText(account.address)
-                  toast.success('Copied to clipboard')
-                }}
-              >
-                {`${account.address.slice(0, 4)}...${account.address.slice(-4)}`}
-              </span>
-            )}
-          </p>
-        </div>
-      )}
-      {account.address &&
-        eggsBalanceData !== undefined &&
-        stakeData !== undefined && (
-          <DottedInfo
-            info="TOTAL $EGGS"
-            value={(
-              Number(formatUnits(eggsBalanceData, 18)) +
-              Number(formatUnits(stakeData, 18))
-            ).toFixed(4)}
-          />
-        )}
-
-      {displayYield && (
-        <DottedInfo
-          info={
-            <div className="relative flex flex-row items-center">
-              <p>YIELD</p>
-              <span className="text-15">/DAY</span>
-              <button
-                className="ml-2 cursor-pointer"
-                onClick={() => {
-                  openModal(ModalState.YieldExplained)
-                }}
-              >
-                <InfoSign />
-              </button>
-            </div>
-          }
-          value={
-            data?.data?.getMe.totalDailyYield
-              ? eggFormatter.format(data.data.getMe.totalDailyYield)
-              : 0
-          }
-        />
-      )}
-      <div className="h-px w-full bg-matcha-powder-0.5 my-2" />
-      <div className="flex flex-row gap-1.5 mb-[9px]">
-        {account.address && (
-          <ActionButton
-            disabled={
-              isClaimingInProgress || justClaimedEggs || !eggsAvailableToClaim
-            }
-            textColor={
-              eggsAvailableToClaim && !isClaimingInProgress && !justClaimedEggs
-                ? 'text-bright-greek'
-                : undefined
-            }
-            flex
-            backgroundColor={'bg-bright-greek-0.5'}
-            onClick={handleClaimEggs}
-          >
-            <p>
-              {isClaimingInProgress
-                ? 'CLAIMING...'
-                : justClaimedEggs
-                  ? 'CLAIMED'
-                  : 'CLAIM EGGS'}
-              {!isClaimingInProgress &&
-                !justClaimedEggs &&
-                !!eggsAvailableToClaim && <span> ({formattedEggs})</span>}
-            </p>
-          </ActionButton>
-        )}
-        {!account.address && (
-          <ActionButton
-            flex
-            backgroundColor={'bg-bright-greek-0.5'}
-            onClick={async () => {
-              await connectFarcaster()
-            }}
-          >
-            <p>CONNECT WALLET</p>
-          </ActionButton>
-        )}
-        {account.address && (
-          <ActionButton
-            flex
-            backgroundColor="bg-bright-greek"
-            onClick={() => {
-              return frameSdk.actions.swapToken({
-                buyToken:
-                  'eip155:8453/erc20:0x712f43B21cf3e1B189c27678C0f551c08c01D150',
-              })
-            }}
-          >
-            <p>{zalgo('BUY')}</p>
-          </ActionButton>
-        )}
-      </div>
-      {account.address &&
-        contractEggBalanceData !== undefined &&
-        contractEggBalanceData >= 10n * 10n ** 18n && (
-          <div className="mt-2 w-full flex">
-            <ActionButton
-              disabled={isBurningInProgress}
-              flex
-              backgroundColor="bg-bright-greek"
-              onClick={async () => {
-                setIsBurningInProgress(true)
-                try {
-                  await toast.promise(
-                    (async () => {
-                      const txHash = await writeContractAsync({
-                        abi: eggsContractAbi,
-                        address: '0x712f43B21cf3e1B189c27678C0f551c08c01D150',
-                        functionName: 'burnFees',
-                        chainId: base.id,
-                      })
-
-                      await publicClient?.waitForTransactionReceipt({
-                        hash: txHash,
-                        confirmations: 2,
-                      })
-                      await refetchContractEggBalance()
-                    })(),
-                    {
-                      loading: `Burning fees...`,
-                      success: `Burned fees successfully`,
-                      error: (txError) => {
-                        const cause =
-                          txError?.cause?.shortMessage ||
-                          txError?.case?.detail ||
-                          txError?.case?.message ||
-                          txError?.data?.message ||
-                          txError?.case?.error ||
-                          txError?.message ||
-                          txError?.reason ||
-                          'Unknown error'
-
-                        return `Failed to burn fees: ${cause}`
-                      },
-                    }
-                  )
-                } catch (txError) {
-                  const cause =
-                    txError?.cause?.shortMessage ||
-                    txError?.case?.detail ||
-                    txError?.case?.message ||
-                    txError?.data?.message ||
-                    txError?.case?.error ||
-                    txError?.message ||
-                    txError?.reason ||
-                    'Unknown error'
-
-                  toast.error(`Error during transaction: ${cause}`)
-                } finally {
-                  setIsBurningInProgress(false)
-                }
-              }}
-            >
-              <p className="uppercase">
-                {isClaimingInProgress
-                  ? 'Burning...'
-                  : '🔥 Burn fees for 0.1 $eggs'}
-              </p>
-            </ActionButton>
-          </div>
-        )}
-      {dailyStreak && (
-        <div className="flex flex-row items-center justify-between mt-2">
-          <p className="uppercase text-15 text-black mt-1">
-            {zalgo('Daily claim streak:')}
-          </p>
-          <ClaimStreakStars
-            claimNumber={dailyStreak.claimNumber}
-            claimedToday={dailyStreak.claimedToday}
-          />
-        </div>
-      )}
-    </div>
+      onMintChicken={() => {
+        void handleMintChicken()
+      }}
+      onUnstake={() => {
+        void handleUnstake()
+      }}
+      stakedEggs={stakedEggs}
+      walletEggs={walletEggs}
+    />
   )
 }

@@ -1,7 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router'
-import Leveling from 'components/Hatching/Leveling'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/leveling')({
-  component: Leveling,
-  preload: true,
+  beforeLoad: () => {
+    throw redirect({ to: '/' })
+  },
 })

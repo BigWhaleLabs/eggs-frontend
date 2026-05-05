@@ -1,7 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router'
-import Onboarding from 'components/Onboarding'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/onboarding')({
-  component: Onboarding,
-  preload: true,
+  beforeLoad: () => {
+    throw redirect({ to: '/' })
+  },
 })

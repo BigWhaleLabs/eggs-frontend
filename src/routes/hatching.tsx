@@ -1,7 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router'
-import Hatching from 'components/Hatching'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/hatching')({
-  component: Hatching,
-  preload: true,
+  beforeLoad: () => {
+    throw redirect({ to: '/' })
+  },
 })
