@@ -6,29 +6,27 @@
   },
   "frame": {
     "version": "1",
-    "name": "$EGGS",
+    "name": "$EGGS shutdown tools",
     "iconUrl": "https://eggs.name/frames/logo.png",
     "homeUrl": "https://eggs.name",
     "imageUrl": "https://eggs.name/frames/image-url.png",
-    "buttonTitle": "Lay some!",
+    "buttonTitle": "Open tools",
     "splashImageUrl": "https://eggs.name/frames/splash.png",
-    "splashBackgroundColor": "#c9fd50",
-    "webhookUrl": "https://backend.eggs.name/farcaster-webhook"
+    "splashBackgroundColor": "#c9fd50"
   },
   "miniapp": {
     "version": "1",
-    "name": "$EGGS",
+    "name": "$EGGS shutdown tools",
     "iconUrl": "https://eggs.name/frames/logo.png",
     "homeUrl": "https://eggs.name",
     "imageUrl": "https://eggs.name/frames/image-url.png",
-    "buttonTitle": "Lay some!",
+    "buttonTitle": "Open tools",
     "splashImageUrl": "https://eggs.name/frames/splash.png",
     "splashBackgroundColor": "#c9fd50",
-    "webhookUrl": "https://backend.eggs.name/farcaster-webhook",
-    "subtitle": "A miniapp for laying eggs",
-    "description": "This is $EGGS, if you like eggs, you'll love $EGGS! Lay eggs, collect chickens, trade 'em, and more!",
-    "primaryCategory": "games",
-    "tags": ["eggs", "finance", "chickens", "top", "earn"]
+    "subtitle": "Wallet tools for shutdown",
+    "description": "Unstake staked $EGGS and turn existing chickens into NFTs.",
+    "primaryCategory": "utility",
+    "tags": ["eggs", "wallet", "base", "nft", "utility"]
   },
   "baseBuilder": {
     "allowedAddresses": ["0xf1fF17B90355Cf4c30D814993A6D77c2498A045d"],
