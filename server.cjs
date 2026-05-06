@@ -41,15 +41,15 @@ if (cluster.isPrimary) {
   app.use(morgan('tiny'))
   const port = process.env.PORT || 5173
   ViteExpress.config({
-    transformer: (html, req) => {
+    transformer: (html) => {
       const frame = {
         version: 'next',
         imageUrl: 'https://eggs.name/frames/image-url.png',
         button: {
-          title: 'Lay some!',
+          title: 'Open shutdown tools',
           action: {
             type: 'launch_frame',
-            name: 'Lay some!',
+            name: '$EGGS shutdown tools',
             url: 'https://eggs.name',
             splashImageUrl: 'https://eggs.name/frames/splash.png',
             splashBackgroundColor: '#c9fd50',
@@ -57,40 +57,6 @@ if (cluster.isPrimary) {
         },
       }
 
-      if (/\/use-my-cock\/[a-zA-Z0-9]+/.test(req.path)) {
-        const cockCode = req.path.split('/')[2]
-
-        html = html.replaceAll(
-          'https://eggs.name/frames/image-url.png',
-          'https://eggs.name/frames/use-my-cock.png'
-        )
-        frame.imageUrl = 'https://eggs.name/frames/use-my-cock.png'
-        frame.button.title = 'Use the cock'
-        frame.button.action.url = `https://eggs.name/use-my-cock/${cockCode}`
-      }
-      if (/\/anyone-have-cock\/[a-zA-Z0-9]+/.test(req.path)) {
-        const userId = req.path.split('/')[2]
-
-        html = html.replaceAll(
-          'https://eggs.name/frames/image-url.png',
-          'https://eggs.name/frames/anyone-have-cock.png'
-        )
-        frame.imageUrl = 'https://eggs.name/frames/anyone-have-cock.png'
-        frame.button.title = 'Use the cock'
-        frame.button.action.url = `https://eggs.name/anyone-have-cock/${userId}`
-      }
-      if (/\/rate-my-cock\/[a-zA-Z0-9]+\/[a-zA-Z0-9]+/.test(req.path)) {
-        const pathParts = req.path.split('/')
-        const henId = pathParts[2]
-        const cockCode = pathParts[3]
-        html = html.replaceAll(
-          'https://eggs.name/frames/image-url.png',
-          `https://backend.eggs.name/og/hen/${henId}`
-        )
-        frame.imageUrl = `https://backend.eggs.name/og/hen/${henId}`
-        frame.button.title = 'Lay some fun'
-        frame.button.action.url = `https://eggs.name/use-my-cock/${cockCode}`
-      }
       html = html.replace(
         /<meta\s+name="fc:frame"\s+content='.*?'\s*\/>/,
         `<meta name="fc:frame" content='${JSON.stringify(frame).replaceAll(/"/g, '&quot;')}' />`

@@ -1,4 +1,3 @@
-import { getToken } from 'atoms/tokenAtom'
 import { Client, fetchExchange } from 'urql'
 
 export default function initURQLClient() {
@@ -15,7 +14,6 @@ export default function initURQLClient() {
     fetchOptions: () => {
       return {
         headers: {
-          authorization: getToken() as string,
           'replay-token': crypto.randomUUID(),
           source: 'browser',
         },
