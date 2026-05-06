@@ -69,7 +69,7 @@ export default function JackpotHeader({
     <div
       className="rounded-xl bg-yellow-background w-full flex flex-col px-3 cursor-pointer"
       onClick={() => {
-        return navigate({ to: direction === 'forward' ? '/jackpot' : '/game' })
+        return navigate({ to: '/' })
       }}
     >
       <div className="flex justify-between items-center -mb-2">

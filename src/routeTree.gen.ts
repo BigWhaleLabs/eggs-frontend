@@ -11,62 +11,13 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
-import { Route as OnboardingImport } from './routes/onboarding'
-import { Route as LevelingImport } from './routes/leveling'
-import { Route as JackpotImport } from './routes/jackpot'
-import { Route as HatchingImport } from './routes/hatching'
-import { Route as GameImport } from './routes/game'
 import { Route as IndexImport } from './routes/index'
-import { Route as UseMyCockCockCodeImport } from './routes/use-my-cock.$cockCode'
-import { Route as AnyoneHaveCockUserIdImport } from './routes/anyone-have-cock.$userId'
 
 // Create/Update Routes
-
-const OnboardingRoute = OnboardingImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const LevelingRoute = LevelingImport.update({
-  id: '/leveling',
-  path: '/leveling',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const JackpotRoute = JackpotImport.update({
-  id: '/jackpot',
-  path: '/jackpot',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const HatchingRoute = HatchingImport.update({
-  id: '/hatching',
-  path: '/hatching',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const GameRoute = GameImport.update({
-  id: '/game',
-  path: '/game',
-  getParentRoute: () => rootRoute,
-} as any)
 
 const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const UseMyCockCockCodeRoute = UseMyCockCockCodeImport.update({
-  id: '/use-my-cock/$cockCode',
-  path: '/use-my-cock/$cockCode',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const AnyoneHaveCockUserIdRoute = AnyoneHaveCockUserIdImport.update({
-  id: '/anyone-have-cock/$userId',
-  path: '/anyone-have-cock/$userId',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -81,55 +32,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
-    '/game': {
-      id: '/game'
-      path: '/game'
-      fullPath: '/game'
-      preLoaderRoute: typeof GameImport
-      parentRoute: typeof rootRoute
-    }
-    '/hatching': {
-      id: '/hatching'
-      path: '/hatching'
-      fullPath: '/hatching'
-      preLoaderRoute: typeof HatchingImport
-      parentRoute: typeof rootRoute
-    }
-    '/jackpot': {
-      id: '/jackpot'
-      path: '/jackpot'
-      fullPath: '/jackpot'
-      preLoaderRoute: typeof JackpotImport
-      parentRoute: typeof rootRoute
-    }
-    '/leveling': {
-      id: '/leveling'
-      path: '/leveling'
-      fullPath: '/leveling'
-      preLoaderRoute: typeof LevelingImport
-      parentRoute: typeof rootRoute
-    }
-    '/onboarding': {
-      id: '/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof OnboardingImport
-      parentRoute: typeof rootRoute
-    }
-    '/anyone-have-cock/$userId': {
-      id: '/anyone-have-cock/$userId'
-      path: '/anyone-have-cock/$userId'
-      fullPath: '/anyone-have-cock/$userId'
-      preLoaderRoute: typeof AnyoneHaveCockUserIdImport
-      parentRoute: typeof rootRoute
-    }
-    '/use-my-cock/$cockCode': {
-      id: '/use-my-cock/$cockCode'
-      path: '/use-my-cock/$cockCode'
-      fullPath: '/use-my-cock/$cockCode'
-      preLoaderRoute: typeof UseMyCockCockCodeImport
-      parentRoute: typeof rootRoute
-    }
   }
 }
 
@@ -137,92 +39,32 @@ declare module '@tanstack/react-router' {
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/game': typeof GameRoute
-  '/hatching': typeof HatchingRoute
-  '/jackpot': typeof JackpotRoute
-  '/leveling': typeof LevelingRoute
-  '/onboarding': typeof OnboardingRoute
-  '/anyone-have-cock/$userId': typeof AnyoneHaveCockUserIdRoute
-  '/use-my-cock/$cockCode': typeof UseMyCockCockCodeRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/game': typeof GameRoute
-  '/hatching': typeof HatchingRoute
-  '/jackpot': typeof JackpotRoute
-  '/leveling': typeof LevelingRoute
-  '/onboarding': typeof OnboardingRoute
-  '/anyone-have-cock/$userId': typeof AnyoneHaveCockUserIdRoute
-  '/use-my-cock/$cockCode': typeof UseMyCockCockCodeRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
-  '/game': typeof GameRoute
-  '/hatching': typeof HatchingRoute
-  '/jackpot': typeof JackpotRoute
-  '/leveling': typeof LevelingRoute
-  '/onboarding': typeof OnboardingRoute
-  '/anyone-have-cock/$userId': typeof AnyoneHaveCockUserIdRoute
-  '/use-my-cock/$cockCode': typeof UseMyCockCockCodeRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/game'
-    | '/hatching'
-    | '/jackpot'
-    | '/leveling'
-    | '/onboarding'
-    | '/anyone-have-cock/$userId'
-    | '/use-my-cock/$cockCode'
+  fullPaths: '/'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/game'
-    | '/hatching'
-    | '/jackpot'
-    | '/leveling'
-    | '/onboarding'
-    | '/anyone-have-cock/$userId'
-    | '/use-my-cock/$cockCode'
-  id:
-    | '__root__'
-    | '/'
-    | '/game'
-    | '/hatching'
-    | '/jackpot'
-    | '/leveling'
-    | '/onboarding'
-    | '/anyone-have-cock/$userId'
-    | '/use-my-cock/$cockCode'
+  to: '/'
+  id: '__root__' | '/'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  GameRoute: typeof GameRoute
-  HatchingRoute: typeof HatchingRoute
-  JackpotRoute: typeof JackpotRoute
-  LevelingRoute: typeof LevelingRoute
-  OnboardingRoute: typeof OnboardingRoute
-  AnyoneHaveCockUserIdRoute: typeof AnyoneHaveCockUserIdRoute
-  UseMyCockCockCodeRoute: typeof UseMyCockCockCodeRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  GameRoute: GameRoute,
-  HatchingRoute: HatchingRoute,
-  JackpotRoute: JackpotRoute,
-  LevelingRoute: LevelingRoute,
-  OnboardingRoute: OnboardingRoute,
-  AnyoneHaveCockUserIdRoute: AnyoneHaveCockUserIdRoute,
-  UseMyCockCockCodeRoute: UseMyCockCockCodeRoute,
 }
 
 export const routeTree = rootRoute
@@ -235,39 +77,11 @@ export const routeTree = rootRoute
     "__root__": {
       "filePath": "__root.tsx",
       "children": [
-        "/",
-        "/game",
-        "/hatching",
-        "/jackpot",
-        "/leveling",
-        "/onboarding",
-        "/anyone-have-cock/$userId",
-        "/use-my-cock/$cockCode"
+        "/"
       ]
     },
     "/": {
       "filePath": "index.tsx"
-    },
-    "/game": {
-      "filePath": "game.tsx"
-    },
-    "/hatching": {
-      "filePath": "hatching.tsx"
-    },
-    "/jackpot": {
-      "filePath": "jackpot.tsx"
-    },
-    "/leveling": {
-      "filePath": "leveling.tsx"
-    },
-    "/onboarding": {
-      "filePath": "onboarding.tsx"
-    },
-    "/anyone-have-cock/$userId": {
-      "filePath": "anyone-have-cock.$userId.tsx"
-    },
-    "/use-my-cock/$cockCode": {
-      "filePath": "use-my-cock.$cockCode.tsx"
     }
   }
 }

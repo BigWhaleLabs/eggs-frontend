@@ -66,7 +66,7 @@ export default function Onboarding() {
           onClick={async () => {
             setOnboarding(true)
             await navigate({
-              to: '/game',
+              to: '/',
             })
           }}
         >

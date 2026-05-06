@@ -175,7 +175,7 @@ export default function LevelUpHen() {
         closeModal()
 
         await navigate({
-          to: '/leveling',
+          to: '/',
         })
       } catch (error) {
         console.error('Error during level up:', error)

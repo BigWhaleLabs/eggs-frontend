@@ -101,7 +101,7 @@ export default function HatchNextHen({ henNumber }: { henNumber: number }) {
           })
 
           await navigate({
-            to: '/hatching',
+            to: '/',
           })
 
           await refetch()

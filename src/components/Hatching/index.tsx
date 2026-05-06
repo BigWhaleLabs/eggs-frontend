@@ -14,7 +14,7 @@ export default function Hatching() {
     const timeout = setTimeout(
       async () => {
         await navigate({
-          to: '/game',
+          to: '/',
         })
       },
       hatchingFrames.length * frameDuration - 500

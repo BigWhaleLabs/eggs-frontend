@@ -67,7 +67,7 @@ export default function FooterFreeHen() {
             toast.error(result.error.message)
           } else {
             await navigate({
-              to: '/hatching',
+              to: '/',
             })
             await refetch()
           }

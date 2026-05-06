@@ -34,7 +34,7 @@ export default function Hatching() {
   const handleCompletion = useCallback(async () => {
     if (upgradeStatus) {
       await refetch()
-      await navigate({ to: '/game' })
+      await navigate({ to: '/' })
     } else {
       setIsAnimating(false)
       setAnimationComplete(true)
@@ -265,7 +265,7 @@ export default function Hatching() {
           <ActionButton
             backgroundColor="bg-bright-greek"
             onClick={
-              animationComplete ? () => navigate({ to: '/game' }) : handleSkip
+              animationComplete ? () => navigate({ to: '/' }) : handleSkip
             }
           >
             <p>{animationComplete ? 'GO BACK' : 'SKIP'}</p>

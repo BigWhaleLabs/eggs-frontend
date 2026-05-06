@@ -2,7 +2,7 @@ import frameSdk from '@farcaster/frame-sdk'
 import { useQuery } from '@tanstack/react-query'
 import useURQLClient from 'hooks/useURQLClient'
 import { useCallback } from 'preact/hooks'
-import { getMyCocks, getMyData } from 'queries/eggsQueries'
+import { getMyCocks } from 'queries/eggsQueries'
 import toast from 'react-hot-toast'
 
 async function share(
@@ -52,20 +52,7 @@ export default function useShare() {
     refetchOnReconnect: true,
     refetchInterval: 1000 * 10,
   })
-  const fetchHens = useCallback(
-    () => client.query(getMyData, {}).toPromise(),
-    [client]
-  )
-  const { data: myData } = useQuery({
-    queryKey: ['myData'],
-    queryFn: fetchHens,
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
-    refetchInterval: 1000 * 10,
-  })
-
   const code = data?.data?.getMyCockCode?.code
-  const userId = myData?.data?.getMe.id
 
   const copyText = (text: string, toastText = 'Copied to clipboard!') => {
     void navigator.clipboard.writeText(text)
@@ -92,7 +79,7 @@ export default function useShare() {
         )
         return
       }
-      const cockLink = `https://eggs.name/use-my-cock/${code}`
+      const cockLink = 'https://eggs.name/'
       const text = `My cock is ready to grow your hen house\n\nHatch your hen now with my cock code and earn some $EGGS\n\n${cockLink}`
       return share(text, cockLink, 'FARCASTER')
     },
@@ -112,7 +99,7 @@ export default function useShare() {
       }
 
       const shareLink = `https://eggs.name/rate-my-cock/${henId}/${code}`
-      const cockLink = `https://eggs.name/use-my-cock/${code}`
+      const cockLink = 'https://eggs.name/'
 
       const text = `Meet my hen! Ain’t she a beaut 🐓\n\nHatch yours now and earn some $EGGS ${cockLink}`
       return share(text, shareLink, 'FARCASTER')
@@ -120,7 +107,7 @@ export default function useShare() {
 
     askForCock() {
       const text = 'Looking for a cock code to grow my hen house'
-      const cockLink = `https://eggs.name/anyone-have-cock/${userId}`
+      const cockLink = 'https://eggs.name/'
       return share(text, cockLink, 'FARCASTER')
     },
 

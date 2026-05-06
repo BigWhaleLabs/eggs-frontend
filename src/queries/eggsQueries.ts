@@ -1,17 +1,5 @@
 import { graphql } from 'helpers/graphql'
 
-export const claimEggsMutation = graphql(`
-  mutation claimEggs($ethAddress: String!) {
-    claimAllEggs(ethAddress: $ethAddress) {
-      message
-      signature
-      r
-      vs
-      amount
-    }
-  }
-`)
-
 export const getMyData = graphql(`
   query getMyData {
     getMe {
@@ -106,31 +94,6 @@ export const getEmissionData = graphql(`
     getEmissionData {
       factor
       emission
-    }
-  }
-`)
-
-export const claimJackpotTicketsMutation = graphql(`
-  mutation claimJackpotTickets($ethAddress: String!) {
-    claimJackpotTickets(ethAddress: $ethAddress) {
-      id
-      serialId
-      amount
-      message
-      r
-      vs
-    }
-  }
-`)
-
-export const getUnclaimedJackpotsCoupon = graphql(`
-  query getUnclaimedJackpotCoupon {
-    unclaimedJackpotCoupons {
-      id
-      r
-      vs
-      amount
-      message
     }
   }
 `)
