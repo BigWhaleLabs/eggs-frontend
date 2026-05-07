@@ -1,9 +1,30 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { formatEggAmount, parseChickenSerialId } from './ShutdownActionsView'
+import {
+  formatEggAmount,
+  getChickenMintActionLabel,
+  parseChickenSerialId,
+  ShutdownChicken,
+} from './ShutdownActionsView'
 import ShutdownActionsView from './ShutdownActionsView'
 
 const address = '0x1234567890abcdef1234567890abcdef12345678' as const
+const chickens: ShutdownChicken[] = [
+  {
+    id: 'hen-1',
+    level: 2,
+    name: 'Alpha',
+    onchainOwnerAddress: null,
+    serialId: 12,
+  },
+  {
+    id: 'hen-2',
+    level: 4,
+    name: 'Minted',
+    onchainOwnerAddress: address,
+    serialId: 13,
+  },
+]
 
 afterEach(() => {
   cleanup()
@@ -22,15 +43,16 @@ describe('shutdown actions', () => {
     expect(parseChickenSerialId('abc')).toBeNull()
   })
 
-  it('shows disabled shutdown actions when wallet state has no stake or serial ID', () => {
+  it('shows disabled shutdown actions when wallet state has no stake or eligible chickens', () => {
     render(
       <ShutdownActionsView
         address={address}
-        chickenSerialId=""
+        chickens={[]}
+        chickensError={null}
         hasChickenMintAllowance={false}
-        isMintingChicken={false}
+        isLoadingChickens={false}
+        mintStates={{}}
         isUnstaking={false}
-        onChickenSerialIdChange={() => {}}
         onCopyAddress={() => {}}
         onMintChicken={() => {}}
         onUnstake={() => {}}
@@ -47,28 +69,22 @@ describe('shutdown actions', () => {
         }) as HTMLButtonElement
       ).disabled
     ).toBe(true)
-    expect(
-      (
-        screen.getByRole('button', {
-          name: /turn into nft/i,
-        }) as HTMLButtonElement
-      ).disabled
-    ).toBe(true)
+    expect(screen.getByText(/no non-nft chickens found/i)).toBeTruthy()
   })
 
-  it('enables unstake and chicken mint actions when wallet state is actionable', () => {
+  it('shows owned non-NFT chickens and sends the selected serial ID to mint', () => {
     const onUnstake = vi.fn()
     const onMintChicken = vi.fn()
-    const onChickenSerialIdChange = vi.fn()
 
     render(
       <ShutdownActionsView
         address={address}
-        chickenSerialId="12"
+        chickens={chickens}
+        chickensError={null}
         hasChickenMintAllowance
-        isMintingChicken={false}
+        isLoadingChickens={false}
+        mintStates={{}}
         isUnstaking={false}
-        onChickenSerialIdChange={onChickenSerialIdChange}
         onCopyAddress={() => {}}
         onMintChicken={onMintChicken}
         onUnstake={onUnstake}
@@ -79,12 +95,45 @@ describe('shutdown actions', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /unstake all/i }))
     fireEvent.click(screen.getByRole('button', { name: /turn into nft/i }))
-    fireEvent.input(screen.getByLabelText(/chicken serial id/i), {
-      target: { value: '13' },
-    })
 
     expect(onUnstake).toHaveBeenCalledTimes(1)
-    expect(onMintChicken).toHaveBeenCalledTimes(1)
-    expect(onChickenSerialIdChange).toHaveBeenCalledWith('13')
+    expect(onMintChicken).toHaveBeenCalledWith(12)
+    expect(screen.getByText('#12')).toBeTruthy()
+    expect(screen.queryByText('#13')).toBeNull()
+  })
+
+  it('keeps row-local chicken mint state visible', () => {
+    render(
+      <ShutdownActionsView
+        address={address}
+        chickens={chickens}
+        chickensError={null}
+        hasChickenMintAllowance={false}
+        isLoadingChickens={false}
+        mintStates={{
+          12: {
+            message: 'Waiting for signature...',
+            phase: 'minting',
+          },
+        }}
+        isUnstaking={false}
+        onCopyAddress={() => {}}
+        onMintChicken={() => {}}
+        onUnstake={() => {}}
+        stakedEggs={10n * 10n ** 18n}
+        walletEggs={5000n * 10n ** 18n}
+      />
+    )
+
+    expect(screen.getByText('Waiting for signature...')).toBeTruthy()
+    expect(
+      (screen.getByRole('button', { name: /minting/i }) as HTMLButtonElement)
+        .disabled
+    ).toBe(true)
+    expect(
+      getChickenMintActionLabel({
+        hasChickenMintAllowance: false,
+      })
+    ).toBe('APPROVE + MINT')
   })
 })

@@ -1,9 +1,12 @@
 import chickensAbi from 'helpers/chickensAbi'
 import eggsContractAbi from 'helpers/eggsContractAbi'
-import { useCallback, useState } from 'preact/hooks'
-import { getHenMintSignatureMutation } from 'queries/eggsQueries'
+import { useCallback, useEffect, useState } from 'preact/hooks'
+import {
+  getHenMintSignatureMutation,
+  getMyShutdownHensQuery,
+} from 'queries/eggsQueries'
 import toast from 'react-hot-toast'
-import { useMutation } from 'urql'
+import { useClient, useMutation } from 'urql'
 import { erc20Abi, parseUnits, zeroAddress } from 'viem'
 import { base } from 'viem/chains'
 import {
@@ -16,8 +19,9 @@ import {
   useWriteContract,
 } from 'wagmi'
 import ShutdownActionsView, {
+  ChickenMintState,
   extractErrorMessage,
-  parseChickenSerialId,
+  ShutdownChicken,
 } from './ShutdownActionsView'
 
 const EGGS_CONTRACT =
@@ -27,12 +31,17 @@ const CHICKENS_CONTRACT =
 const CHICKEN_MINT_ALLOWANCE = parseUnits('4000', 18)
 
 export default function EggsInfo() {
-  const [chickenSerialId, setChickenSerialId] = useState('')
+  const [chickens, setChickens] = useState<ShutdownChicken[]>([])
+  const [chickensError, setChickensError] = useState<string | null>(null)
+  const [isLoadingChickens, setIsLoadingChickens] = useState(false)
+  const [mintStates, setMintStates] = useState<
+    Record<number, ChickenMintState>
+  >({})
   const [isUnstaking, setIsUnstaking] = useState(false)
-  const [isMintingChicken, setIsMintingChicken] = useState(false)
   const account = useAccount()
   const chainId = useChainId()
   const publicClient = usePublicClient()
+  const urqlClient = useClient()
   const { switchChainAsync } = useSwitchChain()
   const { writeContractAsync } = useWriteContract()
   const [, getHenMintSignature] = useMutation(getHenMintSignatureMutation)
@@ -90,6 +99,68 @@ export default function EggsInfo() {
       refetchChickenMintAllowance(),
     ])
   }, [refetchChickenMintAllowance, refetchStakedEggs, refetchWalletEggs])
+
+  const updateMintState = useCallback(
+    (serialId: number, mintState: ChickenMintState) => {
+      setMintStates((previous) => ({
+        ...previous,
+        [serialId]: mintState,
+      }))
+    },
+    []
+  )
+
+  const loadShutdownChickens = useCallback(async () => {
+    if (!account.address) {
+      setChickens([])
+      setChickensError(null)
+      return
+    }
+
+    setIsLoadingChickens(true)
+    setChickensError(null)
+
+    try {
+      const result = await urqlClient
+        .query(getMyShutdownHensQuery, {}, { requestPolicy: 'network-only' })
+        .toPromise()
+
+      if (result.error) {
+        throw result.error
+      }
+
+      const shutdownChickens =
+        result.data?.getMyShutdownHens.map((chicken) => ({
+          id: chicken.id,
+          level: chicken.level,
+          name: chicken.name,
+          onchainOwnerAddress: chicken.onchainOwnerAddress,
+          serialId: chicken.serialId,
+        })) || []
+
+      setChickens(shutdownChickens)
+    } catch (error) {
+      const message = extractErrorMessage(error)
+      const isAuthError =
+        message.toLowerCase().includes('access denied') ||
+        message.toLowerCase().includes('not authorized') ||
+        message.toLowerCase().includes('unauthorized')
+
+      setChickensError(
+        isAuthError
+          ? 'No legacy Eggs chicken session found in this browser.'
+          : message
+      )
+      setChickens([])
+    } finally {
+      setIsLoadingChickens(false)
+    }
+  }, [account.address, urqlClient])
+
+  useEffect(() => {
+    setMintStates({})
+    void loadShutdownChickens()
+  }, [loadShutdownChickens])
 
   const ensureReadyForWrite = useCallback(async () => {
     if (!account.address) {
@@ -156,106 +227,127 @@ export default function EggsInfo() {
     writeContractAsync,
   ])
 
-  const handleMintChicken = useCallback(async () => {
-    const serialId = parseChickenSerialId(chickenSerialId)
-    if (!serialId) {
-      toast.error('Enter a valid chicken serial ID')
-      return
-    }
+  const handleMintChicken = useCallback(
+    async (serialId: number) => {
+      if (!Number.isInteger(serialId) || serialId <= 0) {
+        toast.error('Invalid chicken serial ID')
+        return
+      }
 
-    if (!account.address) {
-      toast.error('Connect wallet first')
-      return
-    }
-    const walletAddress = account.address
+      if (!account.address) {
+        toast.error('Connect wallet first')
+        return
+      }
+      const walletAddress = account.address
 
-    setIsMintingChicken(true)
-    try {
-      await ensureReadyForWrite()
+      try {
+        updateMintState(serialId, {
+          message: 'Checking wallet...',
+          phase: 'minting',
+        })
+        await ensureReadyForWrite()
 
-      if (
-        chickenMintAllowance === undefined ||
-        chickenMintAllowance < CHICKEN_MINT_ALLOWANCE
-      ) {
+        if (
+          chickenMintAllowance === undefined ||
+          chickenMintAllowance < CHICKEN_MINT_ALLOWANCE
+        ) {
+          updateMintState(serialId, {
+            message: 'Setting allowance...',
+            phase: 'approving',
+          })
+          await toast.promise(
+            (async () => {
+              const hash = await writeContractAsync({
+                chainId: base.id,
+                address: EGGS_CONTRACT,
+                abi: erc20Abi,
+                functionName: 'approve',
+                args: [CHICKENS_CONTRACT, CHICKEN_MINT_ALLOWANCE],
+              })
+
+              await waitForReceipt(hash)
+              await refetchChickenMintAllowance()
+              return hash
+            })(),
+            {
+              loading: 'Setting mint allowance...',
+              success: 'Mint allowance set',
+              error: (error) =>
+                `Failed to set allowance: ${extractErrorMessage(error)}`,
+            }
+          )
+        }
+
+        updateMintState(serialId, {
+          message: 'Waiting for signature...',
+          phase: 'minting',
+        })
         await toast.promise(
           (async () => {
+            const signatureResult = await getHenMintSignature({
+              henSerialId: serialId,
+              toAddress: walletAddress,
+            })
+
+            if (
+              signatureResult.error ||
+              !signatureResult.data?.getHenMintSignature
+            ) {
+              throw new Error(
+                signatureResult.error?.message || 'Failed to get mint signature'
+              )
+            }
+
+            const signature = signatureResult.data.getHenMintSignature
             const hash = await writeContractAsync({
               chainId: base.id,
-              address: EGGS_CONTRACT,
-              abi: erc20Abi,
-              functionName: 'approve',
-              args: [CHICKENS_CONTRACT, CHICKEN_MINT_ALLOWANCE],
+              address: CHICKENS_CONTRACT,
+              abi: chickensAbi,
+              functionName: 'mintChicken',
+              args: [
+                signature.message as `0x${string}`,
+                signature.r as `0x${string}`,
+                signature.vs as `0x${string}`,
+              ],
             })
 
             await waitForReceipt(hash)
-            await refetchChickenMintAllowance()
+            await refreshContractData()
+            await loadShutdownChickens()
             return hash
           })(),
           {
-            loading: 'Setting mint allowance...',
-            success: 'Mint allowance set',
+            loading: `Turning chicken #${serialId} into an NFT...`,
+            success: `Chicken #${serialId} minted`,
             error: (error) =>
-              `Failed to set allowance: ${extractErrorMessage(error)}`,
+              `Failed to mint NFT: ${extractErrorMessage(error)}`,
           }
         )
+        updateMintState(serialId, {
+          message: 'Minted to wallet',
+          phase: 'success',
+        })
+      } catch (error) {
+        updateMintState(serialId, {
+          message: extractErrorMessage(error),
+          phase: 'error',
+        })
+        toast.error(extractErrorMessage(error))
       }
-
-      await toast.promise(
-        (async () => {
-          const signatureResult = await getHenMintSignature({
-            henSerialId: serialId,
-            toAddress: walletAddress,
-          })
-
-          if (
-            signatureResult.error ||
-            !signatureResult.data?.getHenMintSignature
-          ) {
-            throw new Error(
-              signatureResult.error?.message || 'Failed to get mint signature'
-            )
-          }
-
-          const signature = signatureResult.data.getHenMintSignature
-          const hash = await writeContractAsync({
-            chainId: base.id,
-            address: CHICKENS_CONTRACT,
-            abi: chickensAbi,
-            functionName: 'mintChicken',
-            args: [
-              signature.message as `0x${string}`,
-              signature.r as `0x${string}`,
-              signature.vs as `0x${string}`,
-            ],
-          })
-
-          await waitForReceipt(hash)
-          await refreshContractData()
-          setChickenSerialId('')
-          return hash
-        })(),
-        {
-          loading: `Turning chicken #${serialId} into an NFT...`,
-          success: `Chicken #${serialId} minted`,
-          error: (error) => `Failed to mint NFT: ${extractErrorMessage(error)}`,
-        }
-      )
-    } catch (error) {
-      toast.error(extractErrorMessage(error))
-    } finally {
-      setIsMintingChicken(false)
-    }
-  }, [
-    account.address,
-    chickenMintAllowance,
-    chickenSerialId,
-    ensureReadyForWrite,
-    getHenMintSignature,
-    refetchChickenMintAllowance,
-    refreshContractData,
-    waitForReceipt,
-    writeContractAsync,
-  ])
+    },
+    [
+      account.address,
+      chickenMintAllowance,
+      ensureReadyForWrite,
+      getHenMintSignature,
+      loadShutdownChickens,
+      refetchChickenMintAllowance,
+      refreshContractData,
+      updateMintState,
+      waitForReceipt,
+      writeContractAsync,
+    ]
+  )
 
   if (!account.address) {
     return (
@@ -268,21 +360,22 @@ export default function EggsInfo() {
   return (
     <ShutdownActionsView
       address={account.address}
-      chickenSerialId={chickenSerialId}
+      chickens={chickens}
+      chickensError={chickensError}
       hasChickenMintAllowance={
         chickenMintAllowance !== undefined &&
         chickenMintAllowance >= CHICKEN_MINT_ALLOWANCE
       }
-      isMintingChicken={isMintingChicken}
+      isLoadingChickens={isLoadingChickens}
+      mintStates={mintStates}
       isUnstaking={isUnstaking || isLoadingStake}
-      onChickenSerialIdChange={setChickenSerialId}
       onCopyAddress={() => {
         if (!account.address) return
         void navigator.clipboard.writeText(account.address)
         toast.success('Copied wallet')
       }}
-      onMintChicken={() => {
-        void handleMintChicken()
+      onMintChicken={(serialId) => {
+        void handleMintChicken(serialId)
       }}
       onUnstake={() => {
         void handleUnstake()

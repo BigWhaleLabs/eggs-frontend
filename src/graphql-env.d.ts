@@ -13,6 +13,8 @@ export type introspection_types = {
       'vs': { name: 'vs'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'SCALAR'; name: 'String'; ofType: null; }; }; };
     };
   };
+  'ID': unknown;
+  'Int': unknown;
   'Mutation': {
     kind: 'OBJECT';
     name: 'Mutation';
@@ -20,7 +22,24 @@ export type introspection_types = {
       'getHenMintSignature': { name: 'getHenMintSignature'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'OBJECT'; name: 'HenMintSignature'; ofType: null; }; }; };
     };
   };
-  'Query': { kind: 'OBJECT'; name: 'Query'; fields: {}; };
+  'Query': {
+    kind: 'OBJECT';
+    name: 'Query';
+    fields: {
+      'getMyShutdownHens': { name: 'getMyShutdownHens'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'LIST'; name: never; ofType: { kind: 'NON_NULL'; name: never; ofType: { kind: 'OBJECT'; name: 'ShutdownHen'; ofType: null; }; }; }; }; };
+    };
+  };
+  'ShutdownHen': {
+    kind: 'OBJECT';
+    name: 'ShutdownHen';
+    fields: {
+      'id': { name: 'id'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'SCALAR'; name: 'String'; ofType: null; }; }; };
+      'level': { name: 'level'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'SCALAR'; name: 'Int'; ofType: null; }; }; };
+      'name': { name: 'name'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'SCALAR'; name: 'String'; ofType: null; }; }; };
+      'onchainOwnerAddress': { name: 'onchainOwnerAddress'; type: { kind: 'SCALAR'; name: 'String'; ofType: null; }; };
+      'serialId': { name: 'serialId'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'SCALAR'; name: 'Int'; ofType: null; }; }; };
+    };
+  };
   'String': unknown;
 };
 
