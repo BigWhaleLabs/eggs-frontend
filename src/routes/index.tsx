@@ -1,4 +1,4 @@
-import frameSdk from '@farcaster/frame-sdk'
+import { sdk as miniAppSdk } from '@farcaster/miniapp-sdk'
 import { createFileRoute } from '@tanstack/react-router'
 import { ActionButton, PrimaryButton } from 'components/Buttons'
 import EggsInfo from 'components/EggsInfo'
@@ -20,7 +20,20 @@ function ResponsiveImageContainer() {
   const { disconnect } = useDisconnect()
 
   useEffect(() => {
-    void frameSdk.actions.ready({}).catch(() => {})
+    const signalMiniAppReady = async () => {
+      const hasMiniAppHost =
+        Boolean(window.ReactNativeWebView) || window !== window.parent
+
+      if (!hasMiniAppHost) return
+
+      try {
+        await miniAppSdk.actions.ready()
+      } catch (error) {
+        console.error('Farcaster Mini App ready() failed', error)
+      }
+    }
+
+    void signalMiniAppReady()
   }, [])
 
   return (

@@ -1,4 +1,4 @@
-import farcasterMiniapp from '@farcaster/miniapp-wagmi-connector'
+import { farcasterMiniApp } from '@farcaster/miniapp-wagmi-connector'
 import { base } from 'viem/chains'
 import { createConfig, http } from 'wagmi'
 import { coinbaseWallet, injected } from 'wagmi/connectors'
@@ -6,7 +6,7 @@ import { coinbaseWallet, injected } from 'wagmi/connectors'
 export default createConfig({
   chains: [base],
   connectors: [
-    farcasterMiniapp(),
+    farcasterMiniApp(),
     injected(),
     coinbaseWallet({
       appName: 'Eggs',

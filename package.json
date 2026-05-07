@@ -13,8 +13,8 @@
     "start-server": "node server.cjs"
   },
   "dependencies": {
-    "@farcaster/frame-sdk": "^0.1.1",
-    "@farcaster/miniapp-wagmi-connector": "^1.0.0",
+    "@farcaster/miniapp-sdk": "^0.3.0",
+    "@farcaster/miniapp-wagmi-connector": "^2.0.0",
     "@tailwindcss/vite": "^4.0.8",
     "@tanstack/react-query": "^5.67.1",
     "@tanstack/react-router": "^1.112.13",
