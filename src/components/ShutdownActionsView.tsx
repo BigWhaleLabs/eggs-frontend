@@ -73,6 +73,30 @@ export function extractErrorMessage(error: unknown) {
   )
 }
 
+export function getShutdownChickensErrorMessage(error: unknown) {
+  const message = extractErrorMessage(error)
+  const normalizedMessage = message.toLowerCase()
+
+  if (
+    normalizedMessage.includes('access denied') ||
+    normalizedMessage.includes('not authorized') ||
+    normalizedMessage.includes('unauthorized')
+  ) {
+    return 'No legacy Eggs chicken session found in this browser.'
+  }
+
+  if (
+    normalizedMessage.includes('[network]') ||
+    normalizedMessage.includes('failed to fetch') ||
+    normalizedMessage.includes('unexpected end of json input') ||
+    normalizedMessage.includes('not-started')
+  ) {
+    return 'Chicken list is unavailable while the shutdown backend is offline.'
+  }
+
+  return message
+}
+
 export default function ShutdownActionsView({
   address,
   chickens,

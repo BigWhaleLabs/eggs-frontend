@@ -21,6 +21,7 @@ import {
 import ShutdownActionsView, {
   ChickenMintState,
   extractErrorMessage,
+  getShutdownChickensErrorMessage,
   ShutdownChicken,
 } from './ShutdownActionsView'
 
@@ -140,17 +141,7 @@ export default function EggsInfo() {
 
       setChickens(shutdownChickens)
     } catch (error) {
-      const message = extractErrorMessage(error)
-      const isAuthError =
-        message.toLowerCase().includes('access denied') ||
-        message.toLowerCase().includes('not authorized') ||
-        message.toLowerCase().includes('unauthorized')
-
-      setChickensError(
-        isAuthError
-          ? 'No legacy Eggs chicken session found in this browser.'
-          : message
-      )
+      setChickensError(getShutdownChickensErrorMessage(error))
       setChickens([])
     } finally {
       setIsLoadingChickens(false)

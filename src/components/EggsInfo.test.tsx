@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   formatEggAmount,
   getChickenMintActionLabel,
+  getShutdownChickensErrorMessage,
   parseChickenSerialId,
   ShutdownChicken,
 } from './ShutdownActionsView'
@@ -41,6 +42,24 @@ describe('shutdown actions', () => {
     expect(parseChickenSerialId('0')).toBeNull()
     expect(parseChickenSerialId('4.2')).toBeNull()
     expect(parseChickenSerialId('abc')).toBeNull()
+  })
+
+  it('maps shutdown chicken loading errors to reviewable messages', () => {
+    expect(
+      getShutdownChickensErrorMessage({
+        message: '[Network] Failed to fetch',
+      })
+    ).toBe('Chicken list is unavailable while the shutdown backend is offline.')
+    expect(
+      getShutdownChickensErrorMessage({
+        message: 'Access denied',
+      })
+    ).toBe('No legacy Eggs chicken session found in this browser.')
+    expect(
+      getShutdownChickensErrorMessage({
+        message: 'Unexpected backend response',
+      })
+    ).toBe('Unexpected backend response')
   })
 
   it('shows disabled shutdown actions when wallet state has no stake or eligible chickens', () => {
