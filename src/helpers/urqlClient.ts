@@ -1,6 +1,6 @@
 import { Client, fetchExchange } from 'urql'
 
-const DEFAULT_GRAPHQL_BACKEND_URL = 'https://backend.eggs.name/graphql'
+const DEFAULT_GRAPHQL_BACKEND_URL = 'https://backend.eggs.name/'
 
 export function getGraphqlBackendUrl() {
   return (
