@@ -13,6 +13,8 @@ export const Route = createFileRoute('/')({
   component: ResponsiveImageContainer,
 })
 
+const miniAppReadyRetryMs = [0, 250, 1000, 2500]
+
 function ResponsiveImageContainer() {
   const login = useLogin()
   const account = useAccount()
@@ -20,20 +22,38 @@ function ResponsiveImageContainer() {
   const { disconnect } = useDisconnect()
 
   useEffect(() => {
-    const signalMiniAppReady = async () => {
-      const hasMiniAppHost =
-        Boolean(window.ReactNativeWebView) || window !== window.parent
+    let didSignalReady = false
+    const timeoutIds: number[] = []
 
-      if (!hasMiniAppHost) return
+    const signalMiniAppReady = async () => {
+      if (didSignalReady) return
 
       try {
         await miniAppSdk.actions.ready()
+        didSignalReady = true
+
+        timeoutIds.forEach((timeoutId) => {
+          window.clearTimeout(timeoutId)
+        })
       } catch (error) {
         console.error('Farcaster Mini App ready() failed', error)
       }
     }
 
-    void signalMiniAppReady()
+    miniAppReadyRetryMs.forEach((retryMs) => {
+      timeoutIds.push(
+        window.setTimeout(() => {
+          void signalMiniAppReady()
+        }, retryMs)
+      )
+    })
+
+    return () => {
+      didSignalReady = true
+      timeoutIds.forEach((timeoutId) => {
+        window.clearTimeout(timeoutId)
+      })
+    }
   }, [])
 
   return (
