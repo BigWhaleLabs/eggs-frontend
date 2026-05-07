@@ -3,6 +3,9 @@ import { base } from 'viem/chains'
 import { createConfig, http } from 'wagmi'
 import { coinbaseWallet, injected } from 'wagmi/connectors'
 
+const BASE_RPC_URL =
+  import.meta.env['VITE_BASE_RPC_URL'] || 'https://mainnet.base.org'
+
 export default createConfig({
   chains: [base],
   connectors: [
@@ -13,6 +16,6 @@ export default createConfig({
     }),
   ],
   transports: {
-    [base.id]: http(import.meta.env['VITE_BASE_RPC_URL']),
+    [base.id]: http(BASE_RPC_URL),
   },
 })
