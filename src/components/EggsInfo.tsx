@@ -12,7 +12,13 @@ import {
 } from 'queries/eggsQueries'
 import toast from 'react-hot-toast'
 import { useClient, useMutation } from 'urql'
-import { erc20Abi, formatUnits, parseUnits, zeroAddress } from 'viem'
+import {
+  erc20Abi,
+  formatUnits,
+  getAddress,
+  parseUnits,
+  zeroAddress,
+} from 'viem'
 import { base } from 'viem/chains'
 import {
   useAccount,
@@ -169,6 +175,60 @@ export default function EggsInfo({ isInMiniApp }: { isInMiniApp: boolean }) {
     []
   )
 
+  const getOnchainChickenOwner = useCallback(
+    async (serialId: number) => {
+      if (!publicClient) return null
+
+      try {
+        const ownerAddress = await publicClient.readContract({
+          address: CHICKENS_CONTRACT,
+          abi: chickensAbi,
+          functionName: 'ownerOf',
+          args: [BigInt(serialId)],
+        })
+
+        return getAddress(ownerAddress)
+      } catch {
+        return null
+      }
+    },
+    [publicClient]
+  )
+
+  const enrichChickensWithOnchainOwners = useCallback(
+    (shutdownChickens: ShutdownChicken[]) =>
+      Promise.all(
+        shutdownChickens.map(async (chicken) => {
+          const onchainOwnerAddress = await getOnchainChickenOwner(
+            chicken.serialId
+          )
+
+          return {
+            ...chicken,
+            onchainOwnerAddress:
+              onchainOwnerAddress || chicken.onchainOwnerAddress,
+          }
+        })
+      ),
+    [getOnchainChickenOwner]
+  )
+
+  const setChickenOnchainOwner = useCallback(
+    (serialId: number, onchainOwnerAddress: `0x${string}`) => {
+      setChickens((previous) =>
+        previous.map((chicken) =>
+          chicken.serialId === serialId
+            ? {
+                ...chicken,
+                onchainOwnerAddress,
+              }
+            : chicken
+        )
+      )
+    },
+    []
+  )
+
   const getShutdownAuthSignature = useCallback(async () => {
     if (isInMiniApp) return null
 
@@ -252,14 +312,20 @@ export default function EggsInfo({ isInMiniApp }: { isInMiniApp: boolean }) {
           serialId: chicken.serialId,
         })) || []
 
-      setChickens(shutdownChickens)
+      setChickens(await enrichChickensWithOnchainOwners(shutdownChickens))
     } catch (error) {
       setChickensError(getShutdownChickensErrorMessage(error))
       setChickens([])
     } finally {
       setIsLoadingChickens(false)
     }
-  }, [activeAddress, getShutdownAuthSignature, isInMiniApp, urqlClient])
+  }, [
+    activeAddress,
+    enrichChickensWithOnchainOwners,
+    getShutdownAuthSignature,
+    isInMiniApp,
+    urqlClient,
+  ])
 
   useEffect(() => {
     setChickens([])
@@ -383,9 +449,39 @@ export default function EggsInfo({ isInMiniApp }: { isInMiniApp: boolean }) {
 
       try {
         updateMintState(serialId, {
+          message: 'Checking onchain status...',
+          phase: 'minting',
+        })
+
+        const mintedOwnerAddress = await getOnchainChickenOwner(serialId)
+
+        if (mintedOwnerAddress) {
+          setChickenOnchainOwner(serialId, mintedOwnerAddress)
+
+          if (
+            activeAddress &&
+            mintedOwnerAddress.toLowerCase() === activeAddress.toLowerCase()
+          ) {
+            updateMintState(serialId, {
+              message: 'Minted to wallet',
+              phase: 'success',
+            })
+          } else {
+            updateMintState(serialId, {
+              message: 'Already minted',
+              phase: 'idle',
+            })
+          }
+
+          toast.success(`Chicken #${serialId} is already minted`)
+          return
+        }
+
+        updateMintState(serialId, {
           message: 'Checking wallet...',
           phase: 'minting',
         })
+
         const walletAddress = await ensureReadyForWrite()
 
         if (walletEggs === undefined || walletEggs < CHICKEN_MINT_PRICE) {
@@ -511,11 +607,13 @@ export default function EggsInfo({ isInMiniApp }: { isInMiniApp: boolean }) {
       chickenMintAllowance,
       ensureReadyForWrite,
       getHenMintSignature,
+      getOnchainChickenOwner,
       getShutdownAuthSignature,
       isInMiniApp,
       loadShutdownChickens,
       refetchChickenMintAllowance,
       refreshContractData,
+      setChickenOnchainOwner,
       updateMintState,
       waitForReceipt,
       walletEggs,
