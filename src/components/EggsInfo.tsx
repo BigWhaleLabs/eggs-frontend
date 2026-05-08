@@ -1,5 +1,6 @@
 import chickensAbi from 'helpers/chickensAbi'
 import eggsContractAbi from 'helpers/eggsContractAbi'
+import { getShutdownAuthorizationMessage } from 'helpers/shutdownAuth'
 import { useCallback, useEffect, useState } from 'preact/hooks'
 import {
   getHenMintSignatureMutation,
@@ -15,6 +16,7 @@ import {
   useChainId,
   usePublicClient,
   useReadContract,
+  useSignMessage,
   useSwitchChain,
   useWriteContract,
 } from 'wagmi'
@@ -36,6 +38,10 @@ export default function EggsInfo() {
   const [chickens, setChickens] = useState<ShutdownChicken[]>([])
   const [chickensError, setChickensError] = useState<string | null>(null)
   const [isLoadingChickens, setIsLoadingChickens] = useState(false)
+  const [shutdownAuth, setShutdownAuth] = useState<{
+    address: `0x${string}`
+    signature: `0x${string}`
+  } | null>(null)
   const [mintStates, setMintStates] = useState<
     Record<number, ChickenMintState>
   >({})
@@ -44,6 +50,7 @@ export default function EggsInfo() {
   const chainId = useChainId()
   const publicClient = usePublicClient()
   const urqlClient = useClient()
+  const { signMessageAsync } = useSignMessage()
   const { switchChainAsync } = useSwitchChain()
   const { writeContractAsync } = useWriteContract()
   const [, getHenMintSignature] = useMutation(getHenMintSignatureMutation)
@@ -112,6 +119,30 @@ export default function EggsInfo() {
     []
   )
 
+  const getShutdownAuthSignature = useCallback(async () => {
+    if (!account.address) {
+      throw new Error('Connect wallet first')
+    }
+
+    if (
+      shutdownAuth &&
+      shutdownAuth.address.toLowerCase() === account.address.toLowerCase()
+    ) {
+      return shutdownAuth.signature
+    }
+
+    const signature = await signMessageAsync({
+      message: getShutdownAuthorizationMessage(account.address),
+    })
+
+    setShutdownAuth({
+      address: account.address,
+      signature,
+    })
+
+    return signature
+  }, [account.address, shutdownAuth, signMessageAsync])
+
   const loadShutdownChickens = useCallback(async () => {
     if (!account.address) {
       setChickens([])
@@ -123,10 +154,11 @@ export default function EggsInfo() {
     setChickensError(null)
 
     try {
+      const authSignature = await getShutdownAuthSignature()
       const result = await urqlClient
         .query(
           getMyShutdownHensQuery,
-          { ownerAddress: account.address },
+          { authSignature, ownerAddress: account.address },
           { requestPolicy: 'network-only' }
         )
         .toPromise()
@@ -151,12 +183,16 @@ export default function EggsInfo() {
     } finally {
       setIsLoadingChickens(false)
     }
-  }, [account.address, urqlClient])
+  }, [account.address, getShutdownAuthSignature, urqlClient])
 
   useEffect(() => {
     setMintStates({})
     void loadShutdownChickens()
   }, [loadShutdownChickens])
+
+  useEffect(() => {
+    setShutdownAuth(null)
+  }, [account.address])
 
   const ensureReadyForWrite = useCallback(async () => {
     if (!account.address) {
@@ -286,7 +322,9 @@ export default function EggsInfo() {
         })
         await toast.promise(
           (async () => {
+            const authSignature = await getShutdownAuthSignature()
             const signatureResult = await getHenMintSignature({
+              authSignature,
               henSerialId: serialId,
               toAddress: walletAddress,
             })
@@ -342,6 +380,7 @@ export default function EggsInfo() {
       chickenMintAllowance,
       ensureReadyForWrite,
       getHenMintSignature,
+      getShutdownAuthSignature,
       loadShutdownChickens,
       refetchChickenMintAllowance,
       refreshContractData,

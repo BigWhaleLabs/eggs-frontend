@@ -1,8 +1,11 @@
 import { graphql } from 'helpers/graphql'
 
 export const getMyShutdownHensQuery = graphql(`
-  query getMyShutdownHens($ownerAddress: String) {
-    getMyShutdownHens(ownerAddress: $ownerAddress) {
+  query getMyShutdownHens($authSignature: String, $ownerAddress: String) {
+    getMyShutdownHens(
+      authSignature: $authSignature
+      ownerAddress: $ownerAddress
+    ) {
       id
       serialId
       name
@@ -13,8 +16,16 @@ export const getMyShutdownHensQuery = graphql(`
 `)
 
 export const getHenMintSignatureMutation = graphql(`
-  mutation getHenMintSignature($henSerialId: Float!, $toAddress: String!) {
-    getHenMintSignature(henSerialId: $henSerialId, toAddress: $toAddress) {
+  mutation getHenMintSignature(
+    $authSignature: String
+    $henSerialId: Float!
+    $toAddress: String!
+  ) {
+    getHenMintSignature(
+      authSignature: $authSignature
+      henSerialId: $henSerialId
+      toAddress: $toAddress
+    ) {
       message
       r
       signature
