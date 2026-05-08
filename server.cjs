@@ -44,14 +44,14 @@ if (cluster.isPrimary) {
     transformer: (html) => {
       const frame = {
         version: 'next',
-        imageUrl: 'https://eggs.name/frames/image-url.png',
+        imageUrl: 'https://eggs.name/frames/image-url.png?v=20260508-old',
         button: {
-          title: 'Open shutdown tools',
+          title: 'Open tools',
           action: {
             type: 'launch_frame',
-            name: '$EGGS shutdown tools',
+            name: '$EGGS wallet tools',
             url: 'https://eggs.name',
-            splashImageUrl: 'https://eggs.name/frames/splash.png',
+            splashImageUrl: 'https://eggs.name/frames/splash.png?v=20260508-old',
             splashBackgroundColor: '#c9fd50',
           },
         },

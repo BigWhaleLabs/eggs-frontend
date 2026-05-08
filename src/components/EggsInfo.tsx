@@ -7,7 +7,7 @@ import {
 } from 'queries/eggsQueries'
 import toast from 'react-hot-toast'
 import { useClient, useMutation } from 'urql'
-import { erc20Abi, parseUnits, zeroAddress } from 'viem'
+import { erc20Abi, formatUnits, parseUnits, zeroAddress } from 'viem'
 import { base } from 'viem/chains'
 import {
   useAccount,
@@ -30,6 +30,7 @@ const EGGS_CONTRACT =
 const CHICKENS_CONTRACT =
   '0x84EEA2bE67b17698B0E09B57eEEdA47aa921BbF0' as `0x${string}`
 const CHICKEN_MINT_ALLOWANCE = parseUnits('4000', 18)
+const CHICKEN_MINT_PRICE = parseUnits('4000', 18)
 
 export default function EggsInfo() {
   const [chickens, setChickens] = useState<ShutdownChicken[]>([])
@@ -123,7 +124,11 @@ export default function EggsInfo() {
 
     try {
       const result = await urqlClient
-        .query(getMyShutdownHensQuery, {}, { requestPolicy: 'network-only' })
+        .query(
+          getMyShutdownHensQuery,
+          { ownerAddress: account.address },
+          { requestPolicy: 'network-only' }
+        )
         .toPromise()
 
       if (result.error) {
@@ -238,6 +243,12 @@ export default function EggsInfo() {
         })
         await ensureReadyForWrite()
 
+        if (walletEggs === undefined || walletEggs < CHICKEN_MINT_PRICE) {
+          throw new Error(
+            `Minting needs at least ${formatUnits(CHICKEN_MINT_PRICE, 18)} $EGGS`
+          )
+        }
+
         if (
           chickenMintAllowance === undefined ||
           chickenMintAllowance < CHICKEN_MINT_ALLOWANCE
@@ -336,6 +347,7 @@ export default function EggsInfo() {
       refreshContractData,
       updateMintState,
       waitForReceipt,
+      walletEggs,
       writeContractAsync,
     ]
   )
@@ -356,6 +368,9 @@ export default function EggsInfo() {
       hasChickenMintAllowance={
         chickenMintAllowance !== undefined &&
         chickenMintAllowance >= CHICKEN_MINT_ALLOWANCE
+      }
+      hasChickenMintBalance={
+        walletEggs !== undefined && walletEggs >= CHICKEN_MINT_PRICE
       }
       isLoadingChickens={isLoadingChickens}
       mintStates={mintStates}

@@ -1,8 +1,8 @@
 import { graphql } from 'helpers/graphql'
 
 export const getMyShutdownHensQuery = graphql(`
-  query getMyShutdownHens {
-    getMyShutdownHens {
+  query getMyShutdownHens($ownerAddress: String) {
+    getMyShutdownHens(ownerAddress: $ownerAddress) {
       id
       serialId
       name

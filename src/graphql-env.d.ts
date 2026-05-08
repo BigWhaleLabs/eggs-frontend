@@ -26,7 +26,7 @@ export type introspection_types = {
     kind: 'OBJECT';
     name: 'Query';
     fields: {
-      'getMyShutdownHens': { name: 'getMyShutdownHens'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'LIST'; name: never; ofType: { kind: 'NON_NULL'; name: never; ofType: { kind: 'OBJECT'; name: 'ShutdownHen'; ofType: null; }; }; }; }; };
+	      'getMyShutdownHens': { name: 'getMyShutdownHens'; type: { kind: 'NON_NULL'; name: never; ofType: { kind: 'LIST'; name: never; ofType: { kind: 'NON_NULL'; name: never; ofType: { kind: 'OBJECT'; name: 'ShutdownHen'; ofType: null; }; }; }; }; args: { ownerAddress: { name: 'ownerAddress'; type: { kind: 'SCALAR'; name: 'String'; ofType: null; }; }; }; };
     };
   };
   'ShutdownHen': {

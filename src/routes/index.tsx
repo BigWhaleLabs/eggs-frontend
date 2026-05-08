@@ -1,12 +1,10 @@
 import { sdk as miniAppSdk } from '@farcaster/miniapp-sdk'
 import { createFileRoute } from '@tanstack/react-router'
-import { ActionButton, PrimaryButton } from 'components/Buttons'
+import { PrimaryButton } from 'components/Buttons'
 import EggsInfo from 'components/EggsInfo'
 import useLogin from 'hooks/useLogin'
 import TimerWave from 'icons/TimerWave'
-import egg from 'images/egg.webp'
-import { useEffect } from 'preact/hooks'
-import toast from 'react-hot-toast'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 
 export const Route = createFileRoute('/')({
@@ -16,7 +14,9 @@ export const Route = createFileRoute('/')({
 const miniAppReadyRetryMs = [0, 250, 1000, 2500]
 
 function ResponsiveImageContainer() {
-  const login = useLogin()
+  const [isInMiniApp, setIsInMiniApp] = useState(false)
+  const didTryMiniAppConnect = useRef(false)
+  const login = useLogin(isInMiniApp)
   const account = useAccount()
   const { connectors, connect, isPending } = useConnect()
   const { disconnect } = useDisconnect()
@@ -56,6 +56,45 @@ function ResponsiveImageContainer() {
     }
   }, [])
 
+  useEffect(() => {
+    let isMounted = true
+
+    miniAppSdk
+      .isInMiniApp()
+      .then((isMiniApp) => {
+        if (!isMounted) return
+        setIsInMiniApp(isMiniApp)
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setIsInMiniApp(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (
+      !isInMiniApp ||
+      account.isConnected ||
+      isPending ||
+      didTryMiniAppConnect.current
+    ) {
+      return
+    }
+
+    const farcasterConnector = connectors.find((connector) =>
+      connector.id.includes('farcaster')
+    )
+
+    if (!farcasterConnector) return
+
+    didTryMiniAppConnect.current = true
+    connect({ connector: farcasterConnector })
+  }, [account.isConnected, connect, connectors, isInMiniApp, isPending])
+
   return (
     <div>
       <div className="absolute w-full z-10">
@@ -69,15 +108,12 @@ function ResponsiveImageContainer() {
           <p className="text-2xl md:text-4xl text-jet">Shutdown wallet tools</p>
         </div>
       </div>
-      <div className="h-screen w-full flex items-center justify-center px-12 flex-col">
+      <div className="min-h-screen w-full flex items-center justify-center px-4 py-6 flex-col">
         <div className="relative flex flex-col items-center justify-center w-full max-w-[420px] z-10">
-          <img
-            src={egg}
-            alt="$EGGS"
-            className="w-28 h-28 object-contain drop-shadow-xl mb-5"
-          />
-          <div className="bg-nuclear-blast rounded-xl p-5 w-full shadow-[0px_0px_24px_0px_rgba(241,38,150,0.45)]">
-            <p className="text-4xl text-jet text-center uppercase">$EGGS</p>
+          <div className="bg-nuclear-blast rounded-xl p-4 w-full shadow-[0px_0px_24px_0px_rgba(241,38,150,0.45)]">
+            <p className="text-4xl text-jet text-center uppercase">
+              $EGGS wallet tools
+            </p>
             <p className="text-19 text-jet-0.6 text-center mt-2">
               Unstake staked $EGGS and turn existing chickens into NFTs.
             </p>
@@ -98,26 +134,6 @@ function ResponsiveImageContainer() {
                     {isPending ? 'Connecting' : 'Connect wallet'}
                   </p>
                 </PrimaryButton>
-                {connectors.map((connector) => (
-                  <ActionButton
-                    key={connector.uid}
-                    disabled={isPending}
-                    flex
-                    backgroundColor="bg-bright-greek-0.5"
-                    onClick={() => {
-                      connect(
-                        { connector },
-                        {
-                          onError: (error) => {
-                            toast.error(error.message)
-                          },
-                        }
-                      )
-                    }}
-                  >
-                    <p>{connector.name}</p>
-                  </ActionButton>
-                ))}
               </div>
             )}
           </div>
@@ -127,7 +143,7 @@ function ResponsiveImageContainer() {
               gap: 10,
             }}
           >
-            {account.isConnected && (
+            {account.isConnected && !isInMiniApp && (
               <PrimaryButton
                 onClick={() => {
                   disconnect()
@@ -136,8 +152,9 @@ function ResponsiveImageContainer() {
                 <p className="uppercase">Disconnect</p>
               </PrimaryButton>
             )}
-            <div className="flex gap-2 text-bright-greek text-2xl justify-center items-center">
+            <div className="flex gap-2 justify-center items-center">
               <a
+                className="rounded-full bg-jet px-4 py-2 text-lg uppercase text-bright-greek"
                 href="https://basescan.org/address/0x712f43b21cf3e1b189c27678c0f551c08c01d150"
                 target="_blank"
               >

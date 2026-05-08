@@ -54,7 +54,7 @@ describe('shutdown actions', () => {
       getShutdownChickensErrorMessage({
         message: 'Access denied',
       })
-    ).toBe('No legacy Eggs chicken session found in this browser.')
+    ).toBe('No offchain chickens available to mint in this browser.')
     expect(
       getShutdownChickensErrorMessage({
         message: 'Unexpected backend response',
@@ -69,6 +69,7 @@ describe('shutdown actions', () => {
         chickens={[]}
         chickensError={null}
         hasChickenMintAllowance={false}
+        hasChickenMintBalance={false}
         isLoadingChickens={false}
         mintStates={{}}
         isUnstaking={false}
@@ -88,7 +89,7 @@ describe('shutdown actions', () => {
         }) as HTMLButtonElement
       ).disabled
     ).toBe(true)
-    expect(screen.getByText(/no non-nft chickens found/i)).toBeTruthy()
+    expect(screen.getByText(/no offchain chickens available/i)).toBeTruthy()
   })
 
   it('shows owned non-NFT chickens and sends the selected serial ID to mint', () => {
@@ -101,6 +102,7 @@ describe('shutdown actions', () => {
         chickens={chickens}
         chickensError={null}
         hasChickenMintAllowance
+        hasChickenMintBalance
         isLoadingChickens={false}
         mintStates={{}}
         isUnstaking={false}
@@ -113,7 +115,7 @@ describe('shutdown actions', () => {
     )
 
     fireEvent.click(screen.getByRole('button', { name: /unstake all/i }))
-    fireEvent.click(screen.getByRole('button', { name: /turn into nft/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^mint$/i }))
 
     expect(onUnstake).toHaveBeenCalledTimes(1)
     expect(onMintChicken).toHaveBeenCalledWith(12)
@@ -128,6 +130,7 @@ describe('shutdown actions', () => {
         chickens={chickens}
         chickensError={null}
         hasChickenMintAllowance={false}
+        hasChickenMintBalance
         isLoadingChickens={false}
         mintStates={{
           12: {
@@ -153,6 +156,6 @@ describe('shutdown actions', () => {
       getChickenMintActionLabel({
         hasChickenMintAllowance: false,
       })
-    ).toBe('APPROVE + MINT')
+    ).toBe('MINT')
   })
 })

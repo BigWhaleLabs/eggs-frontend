@@ -39,7 +39,6 @@ export type ChickenMintState = {
 }
 
 export function getChickenMintActionLabel({
-  hasChickenMintAllowance,
   mintState,
 }: {
   hasChickenMintAllowance: boolean
@@ -48,8 +47,7 @@ export function getChickenMintActionLabel({
   if (mintState?.phase === 'approving') return 'APPROVING'
   if (mintState?.phase === 'minting') return 'MINTING'
   if (mintState?.phase === 'success') return 'MINTED'
-  if (!hasChickenMintAllowance) return 'APPROVE + MINT'
-  return 'TURN INTO NFT'
+  return 'MINT'
 }
 
 export function extractErrorMessage(error: unknown) {
@@ -82,7 +80,7 @@ export function getShutdownChickensErrorMessage(error: unknown) {
     normalizedMessage.includes('not authorized') ||
     normalizedMessage.includes('unauthorized')
   ) {
-    return 'No legacy Eggs chicken session found in this browser.'
+    return 'No offchain chickens available to mint in this browser.'
   }
 
   if (
@@ -102,6 +100,7 @@ export default function ShutdownActionsView({
   chickens,
   chickensError,
   hasChickenMintAllowance,
+  hasChickenMintBalance,
   isLoadingChickens,
   mintStates,
   isUnstaking,
@@ -115,6 +114,7 @@ export default function ShutdownActionsView({
   chickens: ShutdownChicken[]
   chickensError: string | null
   hasChickenMintAllowance: boolean
+  hasChickenMintBalance: boolean
   isLoadingChickens: boolean
   mintStates: Record<number, ChickenMintState>
   isUnstaking: boolean
@@ -174,9 +174,8 @@ export default function ShutdownActionsView({
           Owned chickens that are not NFTs yet.
         </p>
         <p className="text-15 text-jet-0.6">
-          {hasChickenMintAllowance
-            ? 'Mint allowance is ready.'
-            : 'Minting may first ask for the contract allowance.'}
+          Minting costs 4,000 $EGGS per chicken and may first ask for contract
+          allowance.
         </p>
         {isLoadingChickens && (
           <p className="text-16 text-jet-0.6">Loading chickens...</p>
@@ -188,16 +187,15 @@ export default function ShutdownActionsView({
           !chickensError &&
           nonNftChickens.length === 0 && (
             <p className="text-16 text-jet-0.6">
-              No non-NFT chickens found for this session.
+              No offchain chickens available to mint in this browser.
             </p>
           )}
         {nonNftChickens.length > 0 && (
           <div className="max-h-[260px] overflow-y-auto rounded-lg border border-matcha-powder-0.5">
-            <div className="grid grid-cols-[70px_1fr_58px_132px] items-center gap-2 border-b border-matcha-powder-0.5 px-2 py-2 text-15 uppercase text-jet-0.6">
-              <p>Serial</p>
-              <p>Name</p>
+            <div className="grid grid-cols-[minmax(0,1fr)_42px_78px] items-center gap-2 border-b border-matcha-powder-0.5 px-2 py-2 text-14 uppercase text-jet-0.6">
+              <p>Chicken</p>
               <p>Lvl</p>
-              <p className="text-center">Action</p>
+              <p className="text-center">Mint</p>
             </div>
             {nonNftChickens.map((chicken) => {
               const mintState = mintStates[chicken.serialId]
@@ -209,12 +207,13 @@ export default function ShutdownActionsView({
 
               return (
                 <div
-                  className="grid grid-cols-[70px_1fr_58px_132px] items-center gap-2 border-b border-matcha-powder-0.5 px-2 py-2 last:border-b-0"
+                  className="grid grid-cols-[minmax(0,1fr)_42px_78px] items-center gap-2 border-b border-matcha-powder-0.5 px-2 py-2 last:border-b-0"
                   key={chicken.id}
                 >
-                  <p className="text-16 text-jet">#{chicken.serialId}</p>
                   <div className="min-w-0">
-                    <p className="truncate text-16 text-jet">{chicken.name}</p>
+                    <p className="truncate text-16 text-jet">
+                      #{chicken.serialId}
+                    </p>
                     {(mintState?.message || hasError) && (
                       <p
                         className={`truncate text-15 ${
@@ -227,7 +226,7 @@ export default function ShutdownActionsView({
                   </div>
                   <p className="text-16 text-jet">{chicken.level}</p>
                   <ActionButton
-                    disabled={isMinting || isMinted}
+                    disabled={isMinting || isMinted || !hasChickenMintBalance}
                     flex
                     backgroundColor="bg-bright-greek-0.5"
                     textColor={

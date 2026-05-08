@@ -35,7 +35,7 @@ if (!rootElement.innerHTML) {
   render(
     <RootGQLWrapper>
       <QueryClientProvider client={queryClient}>
-        <WagmiProvider config={wagmiConfig}>
+        <WagmiProvider config={wagmiConfig} reconnectOnMount>
           <Toaster />
           <RouterProvider router={router} />
         </WagmiProvider>
