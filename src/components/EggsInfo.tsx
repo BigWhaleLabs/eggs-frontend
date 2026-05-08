@@ -426,10 +426,10 @@ export default function EggsInfo({ isInMiniApp }: { isInMiniApp: boolean }) {
         }
 
         updateMintState(serialId, {
-          message: 'Waiting for signature...',
+          message: 'Getting mint authorization...',
           phase: 'minting',
         })
-        await toast.promise(
+        const signature = await toast.promise(
           (async () => {
             const [authSignature, requestContext] = await Promise.all([
               getShutdownAuthSignature(),
@@ -449,11 +449,27 @@ export default function EggsInfo({ isInMiniApp }: { isInMiniApp: boolean }) {
               !signatureResult.data?.getHenMintSignature
             ) {
               throw new Error(
-                signatureResult.error?.message || 'Failed to get mint signature'
+                signatureResult.error?.message ||
+                  'Failed to get mint authorization'
               )
             }
 
-            const signature = signatureResult.data.getHenMintSignature
+            return signatureResult.data.getHenMintSignature
+          })(),
+          {
+            loading: `Getting mint authorization for chicken #${serialId}...`,
+            success: `Chicken #${serialId} authorized`,
+            error: (error) =>
+              `Failed to authorize mint: ${extractErrorMessage(error)}`,
+          }
+        )
+
+        updateMintState(serialId, {
+          message: 'Confirm mint transaction...',
+          phase: 'minting',
+        })
+        await toast.promise(
+          (async () => {
             const hash = await writeContractAsync({
               chainId: base.id,
               address: CHICKENS_CONTRACT,
@@ -472,7 +488,7 @@ export default function EggsInfo({ isInMiniApp }: { isInMiniApp: boolean }) {
             return hash
           })(),
           {
-            loading: `Turning chicken #${serialId} into an NFT...`,
+            loading: `Minting chicken #${serialId} NFT...`,
             success: `Chicken #${serialId} minted`,
             error: (error) =>
               `Failed to mint NFT: ${extractErrorMessage(error)}`,

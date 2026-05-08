@@ -3,7 +3,6 @@ import { createFileRoute } from '@tanstack/react-router'
 import { PrimaryButton } from 'components/Buttons'
 import EggsInfo from 'components/EggsInfo'
 import useLogin from 'hooks/useLogin'
-import TimerWave from 'icons/TimerWave'
 import { useEffect, useState } from 'preact/hooks'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 
@@ -76,17 +75,6 @@ function ResponsiveImageContainer() {
 
   return (
     <div>
-      <div className="absolute w-full z-10">
-        <TimerWave />
-        <div
-          className="absolute top-0 left-0 w-full h-full flex items-center justify-center flex-col"
-          style={{
-            lineHeight: 'normal',
-          }}
-        >
-          <p className="text-2xl md:text-4xl text-jet">Shutdown wallet tools</p>
-        </div>
-      </div>
       <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden flex items-center justify-center px-4 py-6 flex-col">
         <div className="relative flex flex-col items-center justify-center w-full max-w-[320px] sm:max-w-[420px] z-10">
           <div className="bg-nuclear-blast rounded-xl p-4 w-full shadow-[0px_0px_24px_0px_rgba(241,38,150,0.45)]">
