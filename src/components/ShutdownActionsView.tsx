@@ -48,7 +48,7 @@ export function getChickenMintActionLabel({
   hasChickenMintBalance,
   mintState,
 }: {
-  address: `0x${string}`
+  address: `0x${string}` | null
   chicken: ShutdownChicken
   hasChickenMintAllowance: boolean
   hasChickenMintBalance: boolean
@@ -57,12 +57,16 @@ export function getChickenMintActionLabel({
   if (mintState?.phase === 'approving') return 'APPROVING'
   if (mintState?.phase === 'minting') return 'MINTING'
   if (mintState?.phase === 'success') return 'MINTED'
-  if (chicken.onchainOwnerAddress?.toLowerCase() === address.toLowerCase()) {
+  if (
+    address &&
+    chicken.onchainOwnerAddress?.toLowerCase() === address.toLowerCase()
+  ) {
     return 'MINTED'
   }
   if (chicken.onchainOwnerAddress) {
     return `Owned by ${formatShortAddress(chicken.onchainOwnerAddress)}`
   }
+  if (!address) return 'Connect wallet'
   if (!hasChickenMintBalance) return 'Need $EGGS'
   return 'MINT'
 }
@@ -130,7 +134,7 @@ export default function ShutdownActionsView({
   stakedEggs,
   walletEggs,
 }: {
-  address: `0x${string}`
+  address: `0x${string}` | null
   chickens: ShutdownChicken[]
   chickensError: string | null
   hasChickenMintAllowance: boolean
@@ -148,6 +152,7 @@ export default function ShutdownActionsView({
   walletEggs: bigint | undefined
 }) {
   const hasStake = !!stakedEggs && stakedEggs > 0n
+  const hasWalletAddress = !!address
 
   return (
     <div
@@ -159,8 +164,11 @@ export default function ShutdownActionsView({
       <button
         className="text-19 text-jet-0.6 text-center"
         onClick={onCopyAddress}
+        disabled={!hasWalletAddress}
       >
-        {`${address.slice(0, 6)}...${address.slice(-4)}`}
+        {address
+          ? `${address.slice(0, 6)}...${address.slice(-4)}`
+          : 'Farcaster'}
       </button>
 
       <div className="flex flex-col gap-2">
@@ -214,7 +222,7 @@ export default function ShutdownActionsView({
         >
           <p className="whitespace-normal break-words leading-tight">
             {isSigningChickens
-              ? 'SIGN TO SEE HENS...'
+              ? 'AUTHORIZING...'
               : isLoadingChickens
                 ? 'LOADING HENS...'
                 : 'SEE MY HENS'}
@@ -249,13 +257,15 @@ export default function ShutdownActionsView({
                 mintState?.phase === 'minting'
               const isMinted =
                 mintState?.phase === 'success' ||
-                onchainOwnerAddress?.toLowerCase() === address.toLowerCase()
+                (!!address &&
+                  onchainOwnerAddress?.toLowerCase() === address.toLowerCase())
               const isOwnedByAnotherWallet = !!onchainOwnerAddress && !isMinted
               const hasError = mintState?.phase === 'error'
               const isMintDisabled =
                 isMinting ||
                 isMinted ||
                 isOwnedByAnotherWallet ||
+                !hasWalletAddress ||
                 !hasChickenMintBalance
 
               return (

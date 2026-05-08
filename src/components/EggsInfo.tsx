@@ -1,5 +1,9 @@
 import chickensAbi from 'helpers/chickensAbi'
 import eggsContractAbi from 'helpers/eggsContractAbi'
+import {
+  getMiniAppQuickAuthFetchOptions,
+  getMiniAppWalletAddress,
+} from 'helpers/farcasterMiniApp'
 import { getShutdownAuthorizationMessage } from 'helpers/shutdownAuth'
 import { useCallback, useEffect, useState } from 'preact/hooks'
 import {
@@ -8,18 +12,13 @@ import {
 } from 'queries/eggsQueries'
 import toast from 'react-hot-toast'
 import { useClient, useMutation } from 'urql'
-import {
-  erc20Abi,
-  formatUnits,
-  parseUnits,
-  stringToHex,
-  zeroAddress,
-} from 'viem'
+import { erc20Abi, formatUnits, parseUnits, zeroAddress } from 'viem'
 import { base } from 'viem/chains'
 import {
   useAccount,
   useBalance,
   useChainId,
+  useConnect,
   usePublicClient,
   useReadContract,
   useSignMessage,
@@ -40,10 +39,6 @@ const CHICKENS_CONTRACT =
 const CHICKEN_MINT_ALLOWANCE = parseUnits('4000', 18)
 const CHICKEN_MINT_PRICE = parseUnits('4000', 18)
 
-type EthereumProvider = {
-  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
-}
-
 function getSignatureErrorMessage(error: unknown) {
   const message = extractErrorMessage(error)
   const normalizedMessage = message.toLowerCase()
@@ -53,13 +48,13 @@ function getSignatureErrorMessage(error: unknown) {
     normalizedMessage.includes('denied') ||
     normalizedMessage.includes('4001')
   ) {
-    return 'Signature rejected. Press See My Hens to try again.'
+    return 'Authorization rejected. Press See My Hens to try again.'
   }
 
   return message
 }
 
-export default function EggsInfo() {
+export default function EggsInfo({ isInMiniApp }: { isInMiniApp: boolean }) {
   const [chickens, setChickens] = useState<ShutdownChicken[]>([])
   const [chickensError, setChickensError] = useState<string | null>(null)
   const [hasRequestedChickens, setHasRequestedChickens] = useState(false)
@@ -69,6 +64,9 @@ export default function EggsInfo() {
     address: `0x${string}`
     signature: `0x${string}`
   } | null>(null)
+  const [miniAppAddress, setMiniAppAddress] = useState<`0x${string}` | null>(
+    null
+  )
   const [mintStates, setMintStates] = useState<
     Record<number, ChickenMintState>
   >({})
@@ -77,13 +75,38 @@ export default function EggsInfo() {
   const chainId = useChainId()
   const publicClient = usePublicClient()
   const urqlClient = useClient()
+  const { connectAsync, connectors } = useConnect()
   const { signMessageAsync } = useSignMessage()
   const { switchChainAsync } = useSwitchChain()
   const { writeContractAsync } = useWriteContract()
   const [, getHenMintSignature] = useMutation(getHenMintSignatureMutation)
+  const activeAddress = account.address || miniAppAddress || undefined
+
+  useEffect(() => {
+    if (!isInMiniApp) {
+      setMiniAppAddress(null)
+      return
+    }
+
+    let isMounted = true
+
+    getMiniAppWalletAddress()
+      .then((address) => {
+        if (!isMounted) return
+        setMiniAppAddress(address as `0x${string}` | null)
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setMiniAppAddress(null)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [isInMiniApp])
 
   const { data: ethBalanceData } = useBalance({
-    address: account.address,
+    address: activeAddress,
     chainId: base.id,
   })
 
@@ -95,10 +118,10 @@ export default function EggsInfo() {
     address: EGGS_CONTRACT,
     abi: eggsContractAbi,
     functionName: 'stakeOf',
-    args: [account.address || zeroAddress],
+    args: [activeAddress || zeroAddress],
     chainId: base.id,
     query: {
-      enabled: !!account.address,
+      enabled: !!activeAddress,
       refetchInterval: 1000 * 10,
     },
   })
@@ -107,10 +130,10 @@ export default function EggsInfo() {
     address: EGGS_CONTRACT,
     abi: erc20Abi,
     functionName: 'balanceOf',
-    args: [account.address || zeroAddress],
+    args: [activeAddress || zeroAddress],
     chainId: base.id,
     query: {
-      enabled: !!account.address,
+      enabled: !!activeAddress,
       refetchInterval: 1000 * 10,
     },
   })
@@ -120,10 +143,10 @@ export default function EggsInfo() {
       address: EGGS_CONTRACT,
       abi: erc20Abi,
       functionName: 'allowance',
-      args: [account.address || zeroAddress, CHICKENS_CONTRACT],
+      args: [activeAddress || zeroAddress, CHICKENS_CONTRACT],
       chainId: base.id,
       query: {
-        enabled: !!account.address,
+        enabled: !!activeAddress,
         refetchInterval: 1000 * 10,
       },
     })
@@ -147,53 +170,34 @@ export default function EggsInfo() {
   )
 
   const getShutdownAuthSignature = useCallback(async () => {
-    if (!account.address) {
+    if (isInMiniApp) return null
+
+    if (!activeAddress) {
       throw new Error('Connect wallet first')
     }
 
     if (
       shutdownAuth &&
-      shutdownAuth.address.toLowerCase() === account.address.toLowerCase()
+      shutdownAuth.address.toLowerCase() === activeAddress.toLowerCase()
     ) {
       return shutdownAuth.signature
     }
 
-    const message = getShutdownAuthorizationMessage(account.address)
-    let signature: `0x${string}`
-
-    if (account.connector?.id.includes('farcaster')) {
-      const provider = (await account.connector.getProvider()) as
-        | EthereumProvider
-        | undefined
-      const providerSignature = await provider?.request({
-        method: 'personal_sign',
-        params: [stringToHex(message), account.address],
-      })
-
-      if (
-        typeof providerSignature !== 'string' ||
-        !providerSignature.startsWith('0x')
-      ) {
-        throw new Error('Wallet did not return a signature')
-      }
-
-      signature = providerSignature as `0x${string}`
-    } else {
-      signature = await signMessageAsync({
-        message,
-      })
-    }
+    const message = getShutdownAuthorizationMessage(activeAddress)
+    const signature = await signMessageAsync({
+      message,
+    })
 
     setShutdownAuth({
-      address: account.address,
+      address: activeAddress,
       signature,
     })
 
     return signature
-  }, [account.address, account.connector, shutdownAuth, signMessageAsync])
+  }, [activeAddress, isInMiniApp, shutdownAuth, signMessageAsync])
 
   const loadShutdownChickens = useCallback(async () => {
-    if (!account.address) {
+    if (!activeAddress && !isInMiniApp) {
       setChickens([])
       setChickensError(null)
       setHasRequestedChickens(false)
@@ -203,10 +207,16 @@ export default function EggsInfo() {
     setHasRequestedChickens(true)
     setChickensError(null)
 
-    let authSignature: `0x${string}`
+    let authSignature: `0x${string}` | null
+    let requestContext:
+      | Awaited<ReturnType<typeof getMiniAppQuickAuthFetchOptions>>
+      | undefined
     try {
       setIsSigningChickens(true)
-      authSignature = await getShutdownAuthSignature()
+      ;[authSignature, requestContext] = await Promise.all([
+        getShutdownAuthSignature(),
+        getMiniAppQuickAuthFetchOptions(isInMiniApp),
+      ])
     } catch (error) {
       setChickensError(getSignatureErrorMessage(error))
       setChickens([])
@@ -221,8 +231,11 @@ export default function EggsInfo() {
       const result = await urqlClient
         .query(
           getMyShutdownHensQuery,
-          { authSignature, ownerAddress: account.address },
-          { requestPolicy: 'network-only' }
+          { authSignature, ownerAddress: activeAddress || null },
+          {
+            ...requestContext,
+            requestPolicy: 'network-only',
+          }
         )
         .toPromise()
 
@@ -246,7 +259,7 @@ export default function EggsInfo() {
     } finally {
       setIsLoadingChickens(false)
     }
-  }, [account.address, getShutdownAuthSignature, urqlClient])
+  }, [activeAddress, getShutdownAuthSignature, isInMiniApp, urqlClient])
 
   useEffect(() => {
     setChickens([])
@@ -256,21 +269,54 @@ export default function EggsInfo() {
     setIsLoadingChickens(false)
     setShutdownAuth(null)
     setMintStates({})
-  }, [account.address])
+  }, [activeAddress])
 
   const ensureReadyForWrite = useCallback(async () => {
-    if (!account.address) {
+    let walletAddress = account.address
+
+    if (!walletAddress && isInMiniApp) {
+      const farcasterConnector = connectors.find((connector) =>
+        connector.id.includes('farcaster')
+      )
+
+      if (farcasterConnector) {
+        const result = await connectAsync({
+          chainId: base.id,
+          connector: farcasterConnector,
+        })
+        walletAddress = result.accounts[0]
+      }
+    }
+
+    if (!walletAddress) {
       throw new Error('Connect wallet first')
     }
 
-    if (!ethBalanceData || ethBalanceData.value <= 0n) {
+    const ethBalance =
+      ethBalanceData?.value ||
+      (await publicClient?.getBalance({
+        address: walletAddress,
+      }))
+
+    if (!ethBalance || ethBalance <= 0n) {
       throw new Error('You need ETH on Base to pay for gas')
     }
 
     if (chainId !== base.id) {
       await switchChainAsync({ chainId: base.id })
     }
-  }, [account.address, chainId, ethBalanceData, switchChainAsync])
+
+    return walletAddress
+  }, [
+    account.address,
+    chainId,
+    connectAsync,
+    connectors,
+    ethBalanceData,
+    isInMiniApp,
+    publicClient,
+    switchChainAsync,
+  ])
 
   const waitForReceipt = useCallback(
     async (hash: `0x${string}`) => {
@@ -330,18 +376,17 @@ export default function EggsInfo() {
         return
       }
 
-      if (!account.address) {
+      if (!activeAddress && !isInMiniApp) {
         toast.error('Connect wallet first')
         return
       }
-      const walletAddress = account.address
 
       try {
         updateMintState(serialId, {
           message: 'Checking wallet...',
           phase: 'minting',
         })
-        await ensureReadyForWrite()
+        const walletAddress = await ensureReadyForWrite()
 
         if (walletEggs === undefined || walletEggs < CHICKEN_MINT_PRICE) {
           throw new Error(
@@ -386,12 +431,18 @@ export default function EggsInfo() {
         })
         await toast.promise(
           (async () => {
-            const authSignature = await getShutdownAuthSignature()
-            const signatureResult = await getHenMintSignature({
-              authSignature,
-              henSerialId: serialId,
-              toAddress: walletAddress,
-            })
+            const [authSignature, requestContext] = await Promise.all([
+              getShutdownAuthSignature(),
+              getMiniAppQuickAuthFetchOptions(isInMiniApp),
+            ])
+            const signatureResult = await getHenMintSignature(
+              {
+                authSignature,
+                henSerialId: serialId,
+                toAddress: walletAddress,
+              },
+              requestContext
+            )
 
             if (
               signatureResult.error ||
@@ -440,11 +491,12 @@ export default function EggsInfo() {
       }
     },
     [
-      account.address,
+      activeAddress,
       chickenMintAllowance,
       ensureReadyForWrite,
       getHenMintSignature,
       getShutdownAuthSignature,
+      isInMiniApp,
       loadShutdownChickens,
       refetchChickenMintAllowance,
       refreshContractData,
@@ -455,7 +507,7 @@ export default function EggsInfo() {
     ]
   )
 
-  if (!account.address) {
+  if (!activeAddress && !isInMiniApp) {
     return (
       <p className="text-19 text-jet-0.6 text-center">
         Connect a wallet to use the shutdown actions.
@@ -465,7 +517,7 @@ export default function EggsInfo() {
 
   return (
     <ShutdownActionsView
-      address={account.address}
+      address={activeAddress || null}
       chickens={chickens}
       chickensError={chickensError}
       hasChickenMintAllowance={
@@ -481,8 +533,8 @@ export default function EggsInfo() {
       mintStates={mintStates}
       isUnstaking={isUnstaking || isLoadingStake}
       onCopyAddress={() => {
-        if (!account.address) return
-        void navigator.clipboard.writeText(account.address)
+        if (!activeAddress) return
+        void navigator.clipboard.writeText(activeAddress)
         toast.success('Copied wallet')
       }}
       onMintChicken={(serialId) => {
