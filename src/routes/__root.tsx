@@ -1,12 +1,11 @@
 import { createRootRoute, Outlet } from '@tanstack/react-router'
-import Modal from 'components/Modals'
 import EllipseColor from 'icons/EllipseColor'
 import chicken from 'images/chickens.webp'
 
 export const Route = createRootRoute({
   component: () => (
     <div
-      className="h-screen w-full flex flex-col"
+      className="h-screen w-screen overflow-x-hidden flex flex-col"
       style={{
         backgroundImage: `url(${chicken})`,
         backgroundSize: 'cover',
@@ -14,7 +13,6 @@ export const Route = createRootRoute({
         backgroundRepeat: 'no-repeat',
       }}
     >
-      <Modal />
       <div className="absolute w-full overflow-hidden h-full pointer-events-none">
         <EllipseColor />
       </div>

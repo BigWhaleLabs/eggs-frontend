@@ -6,7 +6,13 @@ import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
   {
-    ignores: ['**/tailwind.config.js', '**/.yarn/**', '**/node_modules/**'],
+    ignores: [
+      '**/tailwind.config.js',
+      '**/.yarn/**',
+      '**/dist/**',
+      '**/node_modules/**',
+      'server.cjs',
+    ],
   },
   tseslint.configs.recommended,
   tseslint.configs.strict,

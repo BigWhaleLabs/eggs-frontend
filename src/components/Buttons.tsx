@@ -49,6 +49,7 @@ export function ActionButton({
         lineHeight: 'normal',
         ...style,
       }}
+      disabled={disabled}
       onClick={disabled ? () => {} : onClick}
     >
       {children}
