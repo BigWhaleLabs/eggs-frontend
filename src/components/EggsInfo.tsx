@@ -8,7 +8,13 @@ import {
 } from 'queries/eggsQueries'
 import toast from 'react-hot-toast'
 import { useClient, useMutation } from 'urql'
-import { erc20Abi, formatUnits, parseUnits, zeroAddress } from 'viem'
+import {
+  erc20Abi,
+  formatUnits,
+  parseUnits,
+  stringToHex,
+  zeroAddress,
+} from 'viem'
 import { base } from 'viem/chains'
 import {
   useAccount,
@@ -34,10 +40,30 @@ const CHICKENS_CONTRACT =
 const CHICKEN_MINT_ALLOWANCE = parseUnits('4000', 18)
 const CHICKEN_MINT_PRICE = parseUnits('4000', 18)
 
+type EthereumProvider = {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
+}
+
+function getSignatureErrorMessage(error: unknown) {
+  const message = extractErrorMessage(error)
+  const normalizedMessage = message.toLowerCase()
+
+  if (
+    normalizedMessage.includes('rejected') ||
+    normalizedMessage.includes('denied') ||
+    normalizedMessage.includes('4001')
+  ) {
+    return 'Signature rejected. Press See My Hens to try again.'
+  }
+
+  return message
+}
+
 export default function EggsInfo() {
   const [chickens, setChickens] = useState<ShutdownChicken[]>([])
   const [chickensError, setChickensError] = useState<string | null>(null)
   const [hasRequestedChickens, setHasRequestedChickens] = useState(false)
+  const [isSigningChickens, setIsSigningChickens] = useState(false)
   const [isLoadingChickens, setIsLoadingChickens] = useState(false)
   const [shutdownAuth, setShutdownAuth] = useState<{
     address: `0x${string}`
@@ -132,9 +158,31 @@ export default function EggsInfo() {
       return shutdownAuth.signature
     }
 
-    const signature = await signMessageAsync({
-      message: getShutdownAuthorizationMessage(account.address),
-    })
+    const message = getShutdownAuthorizationMessage(account.address)
+    let signature: `0x${string}`
+
+    if (account.connector?.id.includes('farcaster')) {
+      const provider = (await account.connector.getProvider()) as
+        | EthereumProvider
+        | undefined
+      const providerSignature = await provider?.request({
+        method: 'personal_sign',
+        params: [stringToHex(message), account.address],
+      })
+
+      if (
+        typeof providerSignature !== 'string' ||
+        !providerSignature.startsWith('0x')
+      ) {
+        throw new Error('Wallet did not return a signature')
+      }
+
+      signature = providerSignature as `0x${string}`
+    } else {
+      signature = await signMessageAsync({
+        message,
+      })
+    }
 
     setShutdownAuth({
       address: account.address,
@@ -142,7 +190,7 @@ export default function EggsInfo() {
     })
 
     return signature
-  }, [account.address, shutdownAuth, signMessageAsync])
+  }, [account.address, account.connector, shutdownAuth, signMessageAsync])
 
   const loadShutdownChickens = useCallback(async () => {
     if (!account.address) {
@@ -153,11 +201,23 @@ export default function EggsInfo() {
     }
 
     setHasRequestedChickens(true)
-    setIsLoadingChickens(true)
     setChickensError(null)
 
+    let authSignature: `0x${string}`
     try {
-      const authSignature = await getShutdownAuthSignature()
+      setIsSigningChickens(true)
+      authSignature = await getShutdownAuthSignature()
+    } catch (error) {
+      setChickensError(getSignatureErrorMessage(error))
+      setChickens([])
+      return
+    } finally {
+      setIsSigningChickens(false)
+    }
+
+    setIsLoadingChickens(true)
+
+    try {
       const result = await urqlClient
         .query(
           getMyShutdownHensQuery,
@@ -192,6 +252,8 @@ export default function EggsInfo() {
     setChickens([])
     setChickensError(null)
     setHasRequestedChickens(false)
+    setIsSigningChickens(false)
+    setIsLoadingChickens(false)
     setShutdownAuth(null)
     setMintStates({})
   }, [account.address])
@@ -414,6 +476,7 @@ export default function EggsInfo() {
         walletEggs !== undefined && walletEggs >= CHICKEN_MINT_PRICE
       }
       hasRequestedChickens={hasRequestedChickens}
+      isSigningChickens={isSigningChickens}
       isLoadingChickens={isLoadingChickens}
       mintStates={mintStates}
       isUnstaking={isUnstaking || isLoadingStake}

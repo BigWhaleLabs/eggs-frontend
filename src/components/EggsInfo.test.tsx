@@ -83,6 +83,7 @@ describe('shutdown actions', () => {
         hasChickenMintAllowance={false}
         hasChickenMintBalance={false}
         hasRequestedChickens
+        isSigningChickens={false}
         isLoadingChickens={false}
         mintStates={{}}
         isUnstaking={false}
@@ -117,6 +118,7 @@ describe('shutdown actions', () => {
         hasChickenMintAllowance={false}
         hasChickenMintBalance={false}
         hasRequestedChickens={false}
+        isSigningChickens={false}
         isLoadingChickens={false}
         mintStates={{}}
         isUnstaking={false}
@@ -146,6 +148,7 @@ describe('shutdown actions', () => {
         hasChickenMintAllowance
         hasChickenMintBalance
         hasRequestedChickens
+        isSigningChickens={false}
         isLoadingChickens={false}
         mintStates={{}}
         isUnstaking={false}
@@ -181,6 +184,7 @@ describe('shutdown actions', () => {
         hasChickenMintAllowance={false}
         hasChickenMintBalance
         hasRequestedChickens
+        isSigningChickens={false}
         isLoadingChickens={false}
         mintStates={{
           12: {
