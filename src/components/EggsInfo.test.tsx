@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  formatShortAddress,
   formatEggAmount,
   getChickenMintActionLabel,
   getShutdownChickensErrorMessage,
@@ -25,6 +26,13 @@ const chickens: ShutdownChicken[] = [
     onchainOwnerAddress: address,
     serialId: 13,
   },
+  {
+    id: 'hen-3',
+    level: 5,
+    name: 'Other',
+    onchainOwnerAddress: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+    serialId: 14,
+  },
 ]
 
 afterEach(() => {
@@ -42,6 +50,10 @@ describe('shutdown actions', () => {
     expect(parseChickenSerialId('0')).toBeNull()
     expect(parseChickenSerialId('4.2')).toBeNull()
     expect(parseChickenSerialId('abc')).toBeNull()
+  })
+
+  it('formats short addresses', () => {
+    expect(formatShortAddress(address)).toBe('0x1234...5678')
   })
 
   it('maps shutdown chicken loading errors to reviewable messages', () => {
@@ -70,10 +82,12 @@ describe('shutdown actions', () => {
         chickensError={null}
         hasChickenMintAllowance={false}
         hasChickenMintBalance={false}
+        hasRequestedChickens
         isLoadingChickens={false}
         mintStates={{}}
         isUnstaking={false}
         onCopyAddress={() => {}}
+        onLoadChickens={() => {}}
         onMintChicken={() => {}}
         onUnstake={() => {}}
         stakedEggs={0n}
@@ -89,10 +103,38 @@ describe('shutdown actions', () => {
         }) as HTMLButtonElement
       ).disabled
     ).toBe(true)
-    expect(screen.getByText(/no offchain chickens available/i)).toBeTruthy()
+    expect(screen.getByText(/no chickens found/i)).toBeTruthy()
   })
 
-  it('shows owned non-NFT chickens and sends the selected serial ID to mint', () => {
+  it('loads chickens only from the explicit button', () => {
+    const onLoadChickens = vi.fn()
+
+    render(
+      <ShutdownActionsView
+        address={address}
+        chickens={[]}
+        chickensError={null}
+        hasChickenMintAllowance={false}
+        hasChickenMintBalance={false}
+        hasRequestedChickens={false}
+        isLoadingChickens={false}
+        mintStates={{}}
+        isUnstaking={false}
+        onCopyAddress={() => {}}
+        onLoadChickens={onLoadChickens}
+        onMintChicken={() => {}}
+        onUnstake={() => {}}
+        stakedEggs={0n}
+        walletEggs={0n}
+      />
+    )
+
+    expect(screen.queryByText(/no chickens found/i)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /see my hens/i }))
+    expect(onLoadChickens).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows chickens and sends an eligible selected serial ID to mint', () => {
     const onUnstake = vi.fn()
     const onMintChicken = vi.fn()
 
@@ -103,10 +145,12 @@ describe('shutdown actions', () => {
         chickensError={null}
         hasChickenMintAllowance
         hasChickenMintBalance
+        hasRequestedChickens
         isLoadingChickens={false}
         mintStates={{}}
         isUnstaking={false}
         onCopyAddress={() => {}}
+        onLoadChickens={() => {}}
         onMintChicken={onMintChicken}
         onUnstake={onUnstake}
         stakedEggs={10n * 10n ** 18n}
@@ -120,7 +164,12 @@ describe('shutdown actions', () => {
     expect(onUnstake).toHaveBeenCalledTimes(1)
     expect(onMintChicken).toHaveBeenCalledWith(12)
     expect(screen.getByText('#12')).toBeTruthy()
-    expect(screen.queryByText('#13')).toBeNull()
+    expect(screen.getByText('#13')).toBeTruthy()
+    expect(screen.getByText('#14')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /^minted$/i })).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: /owned by 0xabcd...abcd/i })
+    ).toBeTruthy()
   })
 
   it('keeps row-local chicken mint state visible', () => {
@@ -131,6 +180,7 @@ describe('shutdown actions', () => {
         chickensError={null}
         hasChickenMintAllowance={false}
         hasChickenMintBalance
+        hasRequestedChickens
         isLoadingChickens={false}
         mintStates={{
           12: {
@@ -140,6 +190,7 @@ describe('shutdown actions', () => {
         }}
         isUnstaking={false}
         onCopyAddress={() => {}}
+        onLoadChickens={() => {}}
         onMintChicken={() => {}}
         onUnstake={() => {}}
         stakedEggs={10n * 10n ** 18n}
@@ -154,8 +205,35 @@ describe('shutdown actions', () => {
     ).toBe(true)
     expect(
       getChickenMintActionLabel({
+        address,
+        chicken: chickens[0],
         hasChickenMintAllowance: false,
+        hasChickenMintBalance: true,
       })
     ).toBe('MINT')
+    expect(
+      getChickenMintActionLabel({
+        address,
+        chicken: chickens[0],
+        hasChickenMintAllowance: false,
+        hasChickenMintBalance: false,
+      })
+    ).toBe('Need $EGGS')
+    expect(
+      getChickenMintActionLabel({
+        address,
+        chicken: chickens[1],
+        hasChickenMintAllowance: true,
+        hasChickenMintBalance: true,
+      })
+    ).toBe('MINTED')
+    expect(
+      getChickenMintActionLabel({
+        address,
+        chicken: chickens[2],
+        hasChickenMintAllowance: true,
+        hasChickenMintBalance: true,
+      })
+    ).toBe('Owned by 0xabcd...abcd')
   })
 })

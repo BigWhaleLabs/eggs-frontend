@@ -18,6 +18,10 @@ export function parseChickenSerialId(value: string) {
   return parsed
 }
 
+export function formatShortAddress(address: string) {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`
+}
+
 export type ShutdownChicken = {
   id: string
   level: number
@@ -39,14 +43,27 @@ export type ChickenMintState = {
 }
 
 export function getChickenMintActionLabel({
+  address,
+  chicken,
+  hasChickenMintBalance,
   mintState,
 }: {
+  address: `0x${string}`
+  chicken: ShutdownChicken
   hasChickenMintAllowance: boolean
+  hasChickenMintBalance: boolean
   mintState?: ChickenMintState
 }) {
   if (mintState?.phase === 'approving') return 'APPROVING'
   if (mintState?.phase === 'minting') return 'MINTING'
   if (mintState?.phase === 'success') return 'MINTED'
+  if (chicken.onchainOwnerAddress?.toLowerCase() === address.toLowerCase()) {
+    return 'MINTED'
+  }
+  if (chicken.onchainOwnerAddress) {
+    return `Owned by ${formatShortAddress(chicken.onchainOwnerAddress)}`
+  }
+  if (!hasChickenMintBalance) return 'Need $EGGS'
   return 'MINT'
 }
 
@@ -101,10 +118,12 @@ export default function ShutdownActionsView({
   chickensError,
   hasChickenMintAllowance,
   hasChickenMintBalance,
+  hasRequestedChickens,
   isLoadingChickens,
   mintStates,
   isUnstaking,
   onCopyAddress,
+  onLoadChickens,
   onMintChicken,
   onUnstake,
   stakedEggs,
@@ -115,19 +134,18 @@ export default function ShutdownActionsView({
   chickensError: string | null
   hasChickenMintAllowance: boolean
   hasChickenMintBalance: boolean
+  hasRequestedChickens: boolean
   isLoadingChickens: boolean
   mintStates: Record<number, ChickenMintState>
   isUnstaking: boolean
   onCopyAddress: () => void
+  onLoadChickens: () => void
   onMintChicken: (serialId: number) => void
   onUnstake: () => void
   stakedEggs: bigint | undefined
   walletEggs: bigint | undefined
 }) {
   const hasStake = !!stakedEggs && stakedEggs > 0n
-  const nonNftChickens = chickens.filter(
-    (chicken) => !chicken.onchainOwnerAddress
-  )
 
   return (
     <div
@@ -171,12 +189,27 @@ export default function ShutdownActionsView({
       <section className="flex flex-col gap-2">
         <p className="text-26 text-jet uppercase">Chicken NFT</p>
         <p className="text-16 text-jet-0.6">
-          Owned chickens that are not NFTs yet.
+          Chickens attached to this wallet's Eggs account.
         </p>
         <p className="text-15 text-jet-0.6">
           Minting costs 4,000 $EGGS per chicken and may first ask for contract
           allowance.
         </p>
+        <ActionButton
+          disabled={isLoadingChickens}
+          flex
+          backgroundColor="bg-bright-greek-0.5"
+          textColor={!isLoadingChickens ? 'text-bright-greek' : undefined}
+          onClick={onLoadChickens}
+          style={{
+            fontSize: 18,
+            padding: '10px 12px 8px 12px',
+          }}
+        >
+          <p className="whitespace-normal break-words leading-tight">
+            {isLoadingChickens ? 'LOADING HENS...' : 'SEE MY HENS'}
+          </p>
+        </ActionButton>
         {isLoadingChickens && (
           <p className="text-16 text-jet-0.6">Loading chickens...</p>
         )}
@@ -185,29 +218,39 @@ export default function ShutdownActionsView({
         )}
         {!isLoadingChickens &&
           !chickensError &&
-          nonNftChickens.length === 0 && (
+          hasRequestedChickens &&
+          chickens.length === 0 && (
             <p className="text-16 text-jet-0.6">
-              No offchain chickens available to mint in this browser.
+              No chickens found for this wallet.
             </p>
           )}
-        {nonNftChickens.length > 0 && (
+        {chickens.length > 0 && (
           <div className="max-h-[260px] overflow-y-auto rounded-lg border border-matcha-powder-0.5">
-            <div className="grid grid-cols-[minmax(0,1fr)_42px_78px] items-center gap-2 border-b border-matcha-powder-0.5 px-2 py-2 text-14 uppercase text-jet-0.6">
+            <div className="grid grid-cols-[minmax(0,1fr)_36px_minmax(92px,104px)] items-center gap-2 border-b border-matcha-powder-0.5 px-2 py-2 text-14 uppercase text-jet-0.6">
               <p>Chicken</p>
               <p>Lvl</p>
               <p className="text-center">Mint</p>
             </div>
-            {nonNftChickens.map((chicken) => {
+            {chickens.map((chicken) => {
               const mintState = mintStates[chicken.serialId]
+              const onchainOwnerAddress = chicken.onchainOwnerAddress
               const isMinting =
                 mintState?.phase === 'approving' ||
                 mintState?.phase === 'minting'
-              const isMinted = mintState?.phase === 'success'
+              const isMinted =
+                mintState?.phase === 'success' ||
+                onchainOwnerAddress?.toLowerCase() === address.toLowerCase()
+              const isOwnedByAnotherWallet = !!onchainOwnerAddress && !isMinted
               const hasError = mintState?.phase === 'error'
+              const isMintDisabled =
+                isMinting ||
+                isMinted ||
+                isOwnedByAnotherWallet ||
+                !hasChickenMintBalance
 
               return (
                 <div
-                  className="grid grid-cols-[minmax(0,1fr)_42px_78px] items-center gap-2 border-b border-matcha-powder-0.5 px-2 py-2 last:border-b-0"
+                  className="grid grid-cols-[minmax(0,1fr)_36px_minmax(92px,104px)] items-center gap-2 border-b border-matcha-powder-0.5 px-2 py-2 last:border-b-0"
                   key={chicken.id}
                 >
                   <div className="min-w-0">
@@ -226,23 +269,27 @@ export default function ShutdownActionsView({
                   </div>
                   <p className="text-16 text-jet">{chicken.level}</p>
                   <ActionButton
-                    disabled={isMinting || isMinted || !hasChickenMintBalance}
+                    disabled={isMintDisabled}
                     flex
                     backgroundColor="bg-bright-greek-0.5"
                     textColor={
-                      !isMinting && !isMinted ? 'text-bright-greek' : undefined
+                      !isMintDisabled ? 'text-bright-greek' : undefined
                     }
                     onClick={() => {
                       onMintChicken(chicken.serialId)
                     }}
                     style={{
                       fontSize: 14,
-                      padding: '8px 8px 6px 8px',
+                      minHeight: 38,
+                      padding: '7px 6px 5px 6px',
                     }}
                   >
-                    <p>
+                    <p className="whitespace-normal break-words text-center leading-tight">
                       {getChickenMintActionLabel({
+                        address,
+                        chicken,
                         hasChickenMintAllowance,
+                        hasChickenMintBalance,
                         mintState,
                       })}
                     </p>
