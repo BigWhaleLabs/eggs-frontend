@@ -44,15 +44,16 @@ if (cluster.isPrimary) {
     transformer: (html) => {
       const frame = {
         version: 'next',
-        imageUrl: 'https://eggs.name/frames/image-url.png?v=20260508-old',
+        imageUrl: 'https://eggs.name/frames/image-url.png?v=20260508-shutdown',
         button: {
           title: 'Open tools',
           action: {
             type: 'launch_frame',
             name: '$EGGS wallet tools',
             url: 'https://eggs.name',
-            splashImageUrl: 'https://eggs.name/frames/splash.png?v=20260508-old',
-            splashBackgroundColor: '#c9fd50',
+            splashImageUrl:
+              'https://eggs.name/frames/splash.png?v=20260508-shutdown',
+            splashBackgroundColor: '#ffeb3b',
           },
         },
       }
