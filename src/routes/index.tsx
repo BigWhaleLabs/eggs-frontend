@@ -96,9 +96,9 @@ function ResponsiveImageContainer() {
             <p className="text-16 sm:text-19 text-jet-0.6 text-center mt-2">
               Unstake staked $EGGS and turn existing chickens into NFTs.
             </p>
-            {account.isConnected ? (
+            {account.isConnected || isInMiniApp ? (
               <div className="mt-5">
-                <EggsInfo />
+                <EggsInfo isInMiniApp={isInMiniApp} />
               </div>
             ) : (
               <div className="mt-5 flex flex-col gap-2">
