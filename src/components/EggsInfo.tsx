@@ -37,6 +37,7 @@ const CHICKEN_MINT_PRICE = parseUnits('4000', 18)
 export default function EggsInfo() {
   const [chickens, setChickens] = useState<ShutdownChicken[]>([])
   const [chickensError, setChickensError] = useState<string | null>(null)
+  const [hasRequestedChickens, setHasRequestedChickens] = useState(false)
   const [isLoadingChickens, setIsLoadingChickens] = useState(false)
   const [shutdownAuth, setShutdownAuth] = useState<{
     address: `0x${string}`
@@ -147,9 +148,11 @@ export default function EggsInfo() {
     if (!account.address) {
       setChickens([])
       setChickensError(null)
+      setHasRequestedChickens(false)
       return
     }
 
+    setHasRequestedChickens(true)
     setIsLoadingChickens(true)
     setChickensError(null)
 
@@ -186,12 +189,11 @@ export default function EggsInfo() {
   }, [account.address, getShutdownAuthSignature, urqlClient])
 
   useEffect(() => {
-    setMintStates({})
-    void loadShutdownChickens()
-  }, [loadShutdownChickens])
-
-  useEffect(() => {
+    setChickens([])
+    setChickensError(null)
+    setHasRequestedChickens(false)
     setShutdownAuth(null)
+    setMintStates({})
   }, [account.address])
 
   const ensureReadyForWrite = useCallback(async () => {
@@ -411,6 +413,7 @@ export default function EggsInfo() {
       hasChickenMintBalance={
         walletEggs !== undefined && walletEggs >= CHICKEN_MINT_PRICE
       }
+      hasRequestedChickens={hasRequestedChickens}
       isLoadingChickens={isLoadingChickens}
       mintStates={mintStates}
       isUnstaking={isUnstaking || isLoadingStake}
@@ -421,6 +424,9 @@ export default function EggsInfo() {
       }}
       onMintChicken={(serialId) => {
         void handleMintChicken(serialId)
+      }}
+      onLoadChickens={() => {
+        void loadShutdownChickens()
       }}
       onUnstake={() => {
         void handleUnstake()
