@@ -1,28 +1,43 @@
-name: Build and deploy app
+name: Lint and Build
+
 on:
+  pull_request:
+    types: [opened, synchronize, reopened]
   push:
     branches:
       - main
+  workflow_dispatch:
+
 jobs:
-  build-and-deploy-app:
+  lint-and-build:
+    name: Lint and Build
     permissions:
       contents: read
-      pages: write
-      id-token: write
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
     env:
       NODE_OPTIONS: '--max_old_space_size=4096'
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          persist-credentials: false
-      - uses: c-hive/gha-yarn-cache@v2
-      - name: Install modules
-        run: yarn
+          node-version: 22
+          cache: yarn
+
+      - name: Enable Corepack
+        run: corepack enable
         shell: bash
+
+      - name: Install modules
+        run: yarn install --immutable
+        shell: bash
+
+      - name: Lint code
+        run: yarn lint
+        shell: bash
+
       - name: Build code
         run: yarn build
         shell: bash
