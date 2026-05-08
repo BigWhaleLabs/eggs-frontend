@@ -44,14 +44,15 @@ if (cluster.isPrimary) {
     transformer: (html) => {
       const frame = {
         version: 'next',
-        imageUrl: 'https://eggs.name/frames/image-url.png',
+        imageUrl: 'https://eggs.name/frames/image-url.png?v=original-chicken',
         button: {
           title: 'Lay some!',
           action: {
             type: 'launch_frame',
             name: 'Lay some!',
             url: 'https://eggs.name',
-            splashImageUrl: 'https://eggs.name/frames/splash.png',
+            splashImageUrl:
+              'https://eggs.name/frames/splash.png?v=original-chicken',
             splashBackgroundColor: '#c9fd50',
           },
         },
