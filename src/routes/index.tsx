@@ -108,13 +108,13 @@ function ResponsiveImageContainer() {
           <p className="text-2xl md:text-4xl text-jet">Shutdown wallet tools</p>
         </div>
       </div>
-      <div className="min-h-screen w-full flex items-center justify-center px-4 py-6 flex-col">
-        <div className="relative flex flex-col items-center justify-center w-full max-w-[420px] z-10">
+      <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden flex items-center justify-center px-4 py-6 flex-col">
+        <div className="relative flex flex-col items-center justify-center w-full max-w-[320px] sm:max-w-[420px] z-10">
           <div className="bg-nuclear-blast rounded-xl p-4 w-full shadow-[0px_0px_24px_0px_rgba(241,38,150,0.45)]">
-            <p className="text-4xl text-jet text-center uppercase">
+            <p className="text-28 sm:text-4xl text-jet text-center uppercase">
               $EGGS wallet tools
             </p>
-            <p className="text-19 text-jet-0.6 text-center mt-2">
+            <p className="text-16 sm:text-19 text-jet-0.6 text-center mt-2">
               Unstake staked $EGGS and turn existing chickens into NFTs.
             </p>
             {account.isConnected ? (

@@ -5,7 +5,7 @@ import chicken from 'images/chickens.webp'
 export const Route = createRootRoute({
   component: () => (
     <div
-      className="h-screen w-full flex flex-col"
+      className="h-screen w-screen overflow-x-hidden flex flex-col"
       style={{
         backgroundImage: `url(${chicken})`,
         backgroundSize: 'cover',
