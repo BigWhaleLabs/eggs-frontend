@@ -188,7 +188,7 @@ describe('shutdown actions', () => {
         isLoadingChickens={false}
         mintStates={{
           12: {
-            message: 'Waiting for signature...',
+            message: 'Getting mint authorization...',
             phase: 'minting',
           },
         }}
@@ -202,7 +202,7 @@ describe('shutdown actions', () => {
       />
     )
 
-    expect(screen.getByText('Waiting for signature...')).toBeTruthy()
+    expect(screen.getByText('Getting mint authorization...')).toBeTruthy()
     expect(
       (screen.getByRole('button', { name: /minting/i }) as HTMLButtonElement)
         .disabled
