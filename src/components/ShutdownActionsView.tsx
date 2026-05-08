@@ -119,6 +119,7 @@ export default function ShutdownActionsView({
   hasChickenMintAllowance,
   hasChickenMintBalance,
   hasRequestedChickens,
+  isSigningChickens,
   isLoadingChickens,
   mintStates,
   isUnstaking,
@@ -135,6 +136,7 @@ export default function ShutdownActionsView({
   hasChickenMintAllowance: boolean
   hasChickenMintBalance: boolean
   hasRequestedChickens: boolean
+  isSigningChickens: boolean
   isLoadingChickens: boolean
   mintStates: Record<number, ChickenMintState>
   isUnstaking: boolean
@@ -196,10 +198,14 @@ export default function ShutdownActionsView({
           allowance.
         </p>
         <ActionButton
-          disabled={isLoadingChickens}
+          disabled={isSigningChickens || isLoadingChickens}
           flex
           backgroundColor="bg-bright-greek-0.5"
-          textColor={!isLoadingChickens ? 'text-bright-greek' : undefined}
+          textColor={
+            !isSigningChickens && !isLoadingChickens
+              ? 'text-bright-greek'
+              : undefined
+          }
           onClick={onLoadChickens}
           style={{
             fontSize: 18,
@@ -207,7 +213,11 @@ export default function ShutdownActionsView({
           }}
         >
           <p className="whitespace-normal break-words leading-tight">
-            {isLoadingChickens ? 'LOADING HENS...' : 'SEE MY HENS'}
+            {isSigningChickens
+              ? 'SIGN TO SEE HENS...'
+              : isLoadingChickens
+                ? 'LOADING HENS...'
+                : 'SEE MY HENS'}
           </p>
         </ActionButton>
         {isLoadingChickens && (

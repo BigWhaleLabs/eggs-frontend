@@ -4,7 +4,7 @@ import { PrimaryButton } from 'components/Buttons'
 import EggsInfo from 'components/EggsInfo'
 import useLogin from 'hooks/useLogin'
 import TimerWave from 'icons/TimerWave'
-import { useEffect, useRef, useState } from 'preact/hooks'
+import { useEffect, useState } from 'preact/hooks'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 
 export const Route = createFileRoute('/')({
@@ -15,10 +15,9 @@ const miniAppReadyRetryMs = [0, 250, 1000, 2500]
 
 function ResponsiveImageContainer() {
   const [isInMiniApp, setIsInMiniApp] = useState(false)
-  const didTryMiniAppConnect = useRef(false)
   const login = useLogin(isInMiniApp)
   const account = useAccount()
-  const { connectors, connect, isPending } = useConnect()
+  const { connectors, isPending } = useConnect()
   const { disconnect } = useDisconnect()
 
   useEffect(() => {
@@ -74,26 +73,6 @@ function ResponsiveImageContainer() {
       isMounted = false
     }
   }, [])
-
-  useEffect(() => {
-    if (
-      !isInMiniApp ||
-      account.isConnected ||
-      isPending ||
-      didTryMiniAppConnect.current
-    ) {
-      return
-    }
-
-    const farcasterConnector = connectors.find((connector) =>
-      connector.id.includes('farcaster')
-    )
-
-    if (!farcasterConnector) return
-
-    didTryMiniAppConnect.current = true
-    connect({ connector: farcasterConnector })
-  }, [account.isConnected, connect, connectors, isInMiniApp, isPending])
 
   return (
     <div>
