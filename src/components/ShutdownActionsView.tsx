@@ -202,7 +202,7 @@ export default function ShutdownActionsView({
           Chickens attached to this wallet's Eggs account.
         </p>
         <p className="text-15 text-jet-0.6">
-          Minting costs 4,000 $EGGS per chicken and may first ask for contract
+          Minting costs 40,000 $EGGS per chicken and may first ask for contract
           allowance.
         </p>
         <ActionButton

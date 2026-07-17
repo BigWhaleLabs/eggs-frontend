@@ -42,8 +42,8 @@ const EGGS_CONTRACT =
   '0x712f43B21cf3e1B189c27678C0f551c08c01D150' as `0x${string}`
 const CHICKENS_CONTRACT =
   '0x84EEA2bE67b17698B0E09B57eEEdA47aa921BbF0' as `0x${string}`
-const CHICKEN_MINT_ALLOWANCE = parseUnits('4000', 18)
-const CHICKEN_MINT_PRICE = parseUnits('4000', 18)
+const CHICKEN_MINT_ALLOWANCE = parseUnits('40000', 18)
+const CHICKEN_MINT_PRICE = parseUnits('40000', 18)
 
 function getSignatureErrorMessage(error: unknown) {
   const message = extractErrorMessage(error)
