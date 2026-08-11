@@ -82,7 +82,7 @@ function ResponsiveImageContainer() {
               $EGGS wallet tools
             </p>
             <p className="text-16 sm:text-19 text-jet-0.6 text-center mt-2">
-              Unstake staked $EGGS and turn existing chickens into NFTs.
+              Unstake your staked $EGGS. Chicken minting has ended permanently.
             </p>
             {account.isConnected || isInMiniApp ? (
               <div className="mt-5">
