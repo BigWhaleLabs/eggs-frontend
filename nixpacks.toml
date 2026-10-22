@@ -1,3 +1,7 @@
+[phases.setup]
+nixpkgsArchive = "da6dc0e7b26060f2f71ce3ef7088fb56ee44fa36"
+nixLibs = []
+
 [phases.install]
 cmds = ["npm install -g corepack@0.24.1 && corepack enable", "yarn install --immutable"]
 dependsOn = ["setup"]
@@ -7,3 +11,5 @@ cmd = 'yarn build'
 
 [start]
 cmd = 'yarn start-server'
+[variables]
+NIXPACKS_SPA_CADDY = "false"
